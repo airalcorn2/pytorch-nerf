@@ -179,7 +179,8 @@ def main():
 
     # Initialize dataset and test object/poses.
     data_dir = "data"
-    num_iters = 20000
+    # See Section B.2.1 in the Supplementary Materials.
+    num_iters = 400000
     test_obj_idx = 5
     test_source_pose_idx = 11
     test_target_pose_idx = 33

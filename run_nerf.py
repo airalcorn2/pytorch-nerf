@@ -279,6 +279,7 @@ def main():
     pixel_ps = torch.full((n_pix,), 1 / n_pix).to(device)
     psnrs = []
     iternums = []
+    # See Section 5.3.
     num_iters = 300000
     display_every = 100
     F_c.train()
