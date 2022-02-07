@@ -11,8 +11,8 @@ def get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os):
     # Sample depths (t_is_c). See Equation (2) in Section 4.
     u_is_c = torch.rand(*list(ds.shape[:2]) + [N_c]).to(ds)
     t_is_c = t_i_c_bin_edges + u_is_c * t_i_c_gap
-    # Calculate the points along the rays (r_ts_c) using the ray origins (os), depths
-    # (t_is_c), and ray directions (ds). See Section 4: r(t) = o + t * d.
+    # Calculate the points along the rays (r_ts_c) using the ray origins (os), sampled
+    # depths (t_is_c), and ray directions (ds). See Section 4: r(t) = o + t * d.
     r_ts_c = os[..., None, :] + t_is_c[..., :, None] * ds[..., None, :]
     return (r_ts_c, t_is_c)
 
