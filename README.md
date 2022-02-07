@@ -30,4 +30,14 @@ while [`run_tiny_nerf.py`](run_tiny_nerf.py) generated the following after 19,60
 
 The advantages of streamlining NeRF's code become readily apparent when trying to extend NeRF.
 For example, [training an "object-centric NeRF"](run_tiny_obj_nerf.py) (i.e., where the *object* is rotated instead of the camera) only required making a few changes to [`run_tiny_nerf.py`](run_tiny_nerf.py) bringing it to 181 sloc (notebook [here](https://colab.research.google.com/drive/1fbn0DCVA1nMOcqEltTyjbBhSzsttaDqA?usp=sharing)).
-However, for some reason, I have yet to be able to reproduce the results from [pixelNeRF](https://github.com/sxyu/pixel-nerf), so if you spot a bug in [`run_pixelnerf.py`](run_pixelnerf.py), please let me know!
+Similarly, [training a pixelNeRF model](run_pixelnerf) (as described in ["pixelNeRF: Neural Radiance Fields from One or Few Images"](https://arxiv.org/abs/2012.02190)) only required making a few changes to [`run_nerf.py`](run_nerf.py) bringing it to 284 sloc (notebook [here](https://colab.research.google.com/drive/1VEEy4VOVoQTQKo4oG3nWcfKAXjC_0fFt?usp=sharing)).
+
+For the following source view:
+
+![](pixelnerf_src.png)
+
+and target view:
+
+![](pixelnerf_tgt.png)
+
+[`run_pixelnerf.py`](run_pixelnerf.py) generated the following after 19,500 iterations (a few hours on a P100 GPU):
