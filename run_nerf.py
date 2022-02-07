@@ -1,7 +1,5 @@
-import io
 import matplotlib.pyplot as plt
 import numpy as np
-import requests
 import torch
 
 from torch import nn, optim
@@ -157,7 +155,7 @@ class NeRFMLP(nn.Module):
         self.final_layer = nn.Sequential(nn.Linear(net_width // 2, 3), nn.Sigmoid())
 
     def forward(self, xs, ds):
-        # Perform encoding on inputs. See Equation (4) in Section 5.1.
+        # Encode the inputs. See Equation (4) in Section 5.1.
         xs_encoded = [xs]
         for l_pos in range(self.L_pos):
             xs_encoded.append(torch.sin(2 ** l_pos * torch.pi * xs))
@@ -203,9 +201,7 @@ def main():
 
     # Initialize optimizer. See Section 5.3.
     lr = 5e-4
-    train_params = list(F_c.parameters())
-    train_params += list(F_f.parameters())
-    optimizer = optim.Adam(train_params, lr=lr)
+    optimizer = optim.Adam(list(F_c.parameters()) + list(F_f.parameters()), lr=lr)
     criterion = nn.MSELoss()
     # The learning rate decays exponentially. See Section 5.3
     # See: https://github.com/bmild/nerf/blob/18b8aebda6700ed659cb27a0c348b737a5f6ab60/run_nerf.py#L486.
@@ -216,21 +212,7 @@ def main():
 
     # Load dataset.
     data_f = "66bdbc812bd0a196e194052f3f12cb2e.npz"
-    try:
-        data = np.load(data_f)
-    except FileNotFoundError:
-        url = (
-            f"https://github.com/airalcorn2/pytorch-nerf/blob/master/{data_f}?raw=True"
-        )
-        response = requests.get(url)
-        data = np.load(io.BytesIO(response.content))
-        np.savez(
-            data_f,
-            images=data["images"],
-            poses=data["poses"],
-            focal=float(data["focal"]),
-            camera_distance=float(data["camera_distance"]),
-        )
+    data = np.load(data_f)
 
     # Set up initial ray origin (init_o) and ray directions (init_ds). These are the
     # same across samples, we just rotate them based on the orientation of the camera.
@@ -260,9 +242,9 @@ def main():
 
     # Initialize volume rendering hyperparameters.
     # Near bound. See Section 4.
-    t_n = float(1)
+    t_n = 1.0
     # Far bound. See Section 4.
-    t_f = float(4)
+    t_f = 4.0
     # Number of coarse samples along a ray. See Section 5.3.
     N_c = 64
     # Number of fine samples along a ray. See Section 5.3.

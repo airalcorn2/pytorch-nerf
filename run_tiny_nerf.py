@@ -1,7 +1,5 @@
-import io
 import matplotlib.pyplot as plt
 import numpy as np
-import requests
 import torch
 
 from torch import nn, optim
@@ -114,21 +112,7 @@ def main():
     criterion = nn.MSELoss()
 
     data_f = "66bdbc812bd0a196e194052f3f12cb2e.npz"
-    try:
-        data = np.load(data_f)
-    except FileNotFoundError:
-        url = (
-            f"https://github.com/airalcorn2/pytorch-nerf/blob/master/{data_f}?raw=True"
-        )
-        response = requests.get(url)
-        data = np.load(io.BytesIO(response.content))
-        np.savez(
-            data_f,
-            images=data["images"],
-            poses=data["poses"],
-            focal=float(data["focal"]),
-            camera_distance=float(data["camera_distance"]),
-        )
+    data = np.load(data_f)
 
     images = data["images"] / 255
     img_size = images.shape[1]
@@ -150,8 +134,8 @@ def main():
     test_ds = torch.einsum("ij,hwj->hwi", test_R, init_ds)
     test_os = (test_R @ init_o).expand(test_ds.shape)
 
-    t_n = float(1)
-    t_f = float(4)
+    t_n = 1.0
+    t_f = 4.0
     N_c = 32
     t_i_c_gap = (t_f - t_n) / N_c
     t_i_c_bin_edges = (t_n + torch.arange(N_c) * t_i_c_gap).to(device)

@@ -1,7 +1,5 @@
-import io
 import matplotlib.pyplot as plt
 import numpy as np
-import requests
 import torch
 
 from torch import nn, optim
@@ -115,21 +113,7 @@ def main():
     criterion = nn.MSELoss()
 
     data_f = "66bdbc812bd0a196e194052f3f12cb2e_obj.npz"
-    try:
-        data = np.load(data_f)
-    except FileNotFoundError:
-        url = (
-            f"https://github.com/airalcorn2/pytorch-nerf/blob/master/{data_f}?raw=True"
-        )
-        response = requests.get(url)
-        data = np.load(io.BytesIO(response.content))
-        np.savez(
-            data_f,
-            images=data["images"],
-            poses=data["poses"],
-            focal=float(data["focal"]),
-            camera_distance=float(data["camera_distance"]),
-        )
+    data = np.load(data_f)
 
     images = data["images"] / 255
     img_size = images.shape[1]
