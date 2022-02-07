@@ -7,12 +7,6 @@ from pixelnerf_dataset import PixelNeRFDataset
 from torch import nn, optim
 
 
-def seed_worker(worker_id):
-    # See: https://pytorch.org/docs/stable/notes/randomness.html#dataloader.
-    worker_seed = torch.initial_seed() % 2 ** 32
-    np.random.seed(worker_seed)
-
-
 def get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os):
     u_is_c = torch.rand(*list(ds.shape[:2]) + [N_c]).to(ds)
     t_is_c = t_i_c_bin_edges + u_is_c * t_i_c_gap
@@ -212,7 +206,7 @@ def main():
     test_target_pose = train_dataset.poses[test_obj_idx, test_target_pose_idx]
     test_target_R = test_target_pose[:3, :3]
 
-    test_R = torch.Tensor(test_target_R @ test_source_R.T).to(device)
+    test_R = torch.Tensor(test_source_R.T @ test_target_R).to(device)
 
     plt.imshow(test_source_image)
     plt.show()
@@ -276,7 +270,7 @@ def main():
                 batch_img_size, batch_img_size, -1
             )
 
-            # Extract feature pyramid from image. See Section 4.1., Section B.1 in the
+            # Extract feature pyramid from image. See Section 4.1, Section B.1 in the
             # Supplementary Materials, and: https://github.com/sxyu/pixel-nerf/blob/master/src/model/encoder.py.
             with torch.no_grad():
                 W_i = E(source_image.unsqueeze(0).permute(0, 3, 1, 2).to(device))

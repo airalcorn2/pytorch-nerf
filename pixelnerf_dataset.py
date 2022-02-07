@@ -84,6 +84,6 @@ class PixelNeRFDataset(Dataset):
         target_pose = self.poses[obj_idx, target_pose_idx]
         target_R = target_pose[:3, :3]
 
-        R = target_R @ source_R.T
+        R = source_R.T @ target_R
 
         return (source_image, torch.Tensor(R), torch.Tensor(target_image), bbox)
