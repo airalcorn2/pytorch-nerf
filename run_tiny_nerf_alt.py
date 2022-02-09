@@ -121,20 +121,21 @@ def load_data(device):
     init_ds = camera_coords.to(device)
     init_o = torch.Tensor(np.array([0, 0, float(data["camera_distance"])])).to(device)
 
+    return (images, data["poses"], init_ds, init_o, img_size)
+
+
+def set_up_test_data(images, device, poses, init_ds, init_o):
     test_idx = 150
     plt.imshow(images[test_idx])
     plt.show()
     test_img = torch.Tensor(images[test_idx]).to(device)
-    poses = data["poses"]
     test_R = torch.Tensor(poses[test_idx, :3, :3]).to(device)
     test_ds = torch.einsum("ij,hwj->hwi", test_R, init_ds)
     test_os = (test_R @ init_o).expand(test_ds.shape)
 
     train_idxs = np.arange(len(images)) != test_idx
-    images = torch.Tensor(images[train_idxs])
-    poses = torch.Tensor(poses[train_idxs])
 
-    return (images, poses, init_ds, init_o, test_ds, test_os, test_img)
+    return (test_ds, test_os, test_img, train_idxs)
 
 
 def main():
@@ -149,7 +150,12 @@ def main():
     optimizer = optim.Adam(nerf.F_c.parameters(), lr=lr)
     criterion = nn.MSELoss()
 
-    (images, poses, init_ds, init_o, test_ds, test_os, test_img) = load_data(device)
+    (images, poses, init_ds, init_o, test_img) = load_data(device)
+    (test_ds, test_os, test_img, train_idxs) = set_up_test_data(
+        images, device, poses, init_ds, init_o
+    )
+    images = torch.Tensor(images[train_idxs])
+    poses = torch.Tensor(poses[train_idxs])
 
     psnrs = []
     iternums = []

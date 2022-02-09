@@ -136,8 +136,8 @@ def main():
     test_os = (test_R @ init_o).expand(test_ds.shape)
     test_ns = torch.Tensor(poses[test_idx, :, 3]).expand(test_ds.shape).to(device)
 
-    t_n = float(1)
-    t_f = float(4)
+    t_n = 1.0
+    t_f = 4.0
     N_c = 32
     t_i_c_gap = (t_f - t_n) / N_c
     t_i_c_bin_edges = (t_n + torch.arange(N_c) * t_i_c_gap).to(device)

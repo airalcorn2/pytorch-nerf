@@ -54,7 +54,7 @@ def run_one_iter_of_tiny_nerf(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os, chunk_siz
     return C_rs_c
 
 
-class VeryTinyNeRFModel(nn.Module):
+class VeryTinyNeRFMLP(nn.Module):
     def __init__(self):
         super().__init__()
         self.L_pos = 6
@@ -104,7 +104,7 @@ def main():
     np.random.seed(seed)
 
     device = "cuda:0"
-    F_c = VeryTinyNeRFModel().to(device)
+    F_c = VeryTinyNeRFMLP().to(device)
     chunk_size = 16384
 
     lr = 5e-3
