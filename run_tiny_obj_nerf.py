@@ -108,7 +108,7 @@ def main():
     F_c = VeryTinyObjNeRFModel().to(device)
     chunk_size = 16384
 
-    lr = 5e-3
+    lr = 1e-2
     optimizer = optim.Adam(F_c.parameters(), lr=lr)
     criterion = nn.MSELoss()
 
@@ -157,7 +157,7 @@ def main():
 
         ds = torch.einsum("ij,hwj->hwi", R, init_ds)
         os = (R @ init_o).expand(ds.shape)
-        ns = (R @ init_o).expand(ds.shape)
+        ns = torch.Tensor(poses[target_img_idx, :, 3]).expand(ds.shape).to(device)
 
         C_rs_c = run_one_iter_of_tiny_nerf(
             ds, N_c, t_i_c_bin_edges, t_i_c_gap, os, ns, chunk_size, F_c
