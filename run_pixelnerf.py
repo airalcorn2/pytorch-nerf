@@ -43,10 +43,9 @@ def get_image_features_for_query_points(r_ts, camera_distance, scale, W_i):
     # (r_ts). This is just geometry. See: http://www.songho.ca/opengl/gl_projectionmatrix.html.
     pi_x_is = r_ts[..., :2] / (camera_distance - r_ts[..., 2].unsqueeze(-1))
     pi_x_is = pi_x_is / scale
-    pi_x_is = pi_x_is.clamp(-1, 1)
     # PyTorch's grid_sample function assumes (-1, -1) is the left-top pixel, but we want
     # (-1, -1) to be the left-bottom pixel, so we negate the y-coordinates.
-    # pi_x_is[..., 1] = -1 * pi_x_is[..., 1]
+    pi_x_is[..., 1] = -1 * pi_x_is[..., 1]
     # PyTorch's grid_sample function expects the grid to have shape
     # (N, H_out, W_out, 2).
     pi_x_is = pi_x_is.permute(2, 0, 1, 3)
@@ -111,7 +110,6 @@ def run_one_iter_of_pixelnerf(
     W_i,
     chunk_size,
     F_c,
-    use_fine,
     N_f,
     t_f,
     F_f,
@@ -122,20 +120,13 @@ def run_one_iter_of_pixelnerf(
         r_ts_c, ds, z_is_c, chunk_size, F_c, t_is_c
     )
 
-    if use_fine:
-        (r_ts_f, t_is_f) = get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds)
-        z_is_f = get_image_features_for_query_points(
-            r_ts_f, camera_distance, scale, W_i
-        )
-        (C_rs_f, _) = render_radiance_volume(
-            r_ts_f, ds, z_is_f, chunk_size, F_f, t_is_f
-        )
-        return (C_rs_c, C_rs_f)
-    else:
-        return (C_rs_c, None)
+    (r_ts_f, t_is_f) = get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds)
+    z_is_f = get_image_features_for_query_points(r_ts_f, camera_distance, scale, W_i)
+    (C_rs_f, _) = render_radiance_volume(r_ts_f, ds, z_is_f, chunk_size, F_f, t_is_f)
+    return (C_rs_c, C_rs_f)
 
 
-class PixelNeRFModel(nn.Module):
+class PixelNeRFFCResNet(nn.Module):
     def __init__(self):
         super().__init__()
         # Number of encoding functions for positions. See Section B.1 in the
@@ -203,32 +194,7 @@ class PixelNeRFModel(nn.Module):
         return {"c_is": c_is, "sigma_is": sigma_is}
 
 
-def main():
-    seed = 9458
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-
-    device = "cuda:0"
-    F_c = PixelNeRFModel().to(device)
-    use_fine = False
-    F_f = PixelNeRFModel().to(device) if use_fine else None
-
-    E = ImageEncoder().to(device)
-    chunk_size = 1024 * 32
-    # See Section B.2 in the Supplementary Materials.
-    batch_img_size = 12
-    n_batch_pix = batch_img_size ** 2
-    n_objs = 4
-
-    # See Section B.2 in the Supplementary Materials.
-    lr = 1e-4
-    train_params = list(F_c.parameters())
-    if use_fine:
-        train_params += list(F_f.parameters())
-
-    optimizer = optim.Adam(train_params, lr=lr)
-    criterion = nn.MSELoss()
-
+def load_data():
     # Initialize dataset and test object/poses.
     data_dir = "data"
     # See Section B.2.1 in the Supplementary Materials.
@@ -239,69 +205,107 @@ def main():
     train_dataset = PixelNeRFDataset(
         data_dir, num_iters, test_obj_idx, test_source_pose_idx, test_target_pose_idx
     )
+    return train_dataset
 
-    init_o = train_dataset.init_o.to(device)
-    init_ds = train_dataset.init_ds.to(device)
+
+def load_test_data(train_dataset, device):
+    obj_idx = train_dataset.test_obj_idx
+    obj = train_dataset.objs[obj_idx]
+    data_dir = train_dataset.data_dir
+    obj_dir = f"{data_dir}/{obj}"
+
+    z_len = train_dataset.z_len
+    source_pose_idx = train_dataset.test_source_pose_idx
+    source_img_f = f"{obj_dir}/{str(source_pose_idx).zfill(z_len)}.npy"
+    source_image = np.load(source_img_f) / 255
+    source_pose = train_dataset.poses[obj_idx, source_pose_idx]
+    source_R = source_pose[:3, :3]
+
+    target_pose_idx = train_dataset.test_target_pose_idx
+    target_img_f = f"{obj_dir}/{str(target_pose_idx).zfill(z_len)}.npy"
+    target_image = np.load(target_img_f) / 255
+    target_pose = train_dataset.poses[obj_idx, target_pose_idx]
+    target_R = target_pose[:3, :3]
+
+    R = torch.Tensor(source_R.T @ target_R).to(device)
+
+    plt.imshow(source_image)
+    plt.show()
+    source_image = torch.Tensor(source_image)
+    source_image = (
+        source_image - train_dataset.channel_means
+    ) / train_dataset.channel_stds
+    source_image = source_image.to(device).unsqueeze(0).permute(0, 3, 1, 2)
+    plt.imshow(target_image)
+    plt.show()
+    target_image = torch.Tensor(target_image).to(device)
+
+    return (source_image, R, target_image)
+
+
+def main():
+    seed = 9458
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    device = "cuda:0"
+    F_c = PixelNeRFFCResNet().to(device)
+    F_f = PixelNeRFFCResNet().to(device)
+
+    E = ImageEncoder().to(device)
+    chunk_size = 1024 * 32
+    # See Section B.2 in the Supplementary Materials.
+    batch_img_size = 12
+    n_batch_pix = batch_img_size ** 2
+    n_objs = 4
+
+    # See Section B.2 in the Supplementary Materials.
+    lr = 1e-4
+    optimizer = optim.Adam(list(F_c.parameters()) + list(F_f.parameters()), lr=lr)
+    criterion = nn.MSELoss()
+
+    train_dataset = load_data()
+
     camera_distance = train_dataset.camera_distance
     scale = train_dataset.scale
-    z_len = train_dataset.z_len
-
-    test_obj = train_dataset.objs[test_obj_idx]
-    test_obj_dir = f"{data_dir}/{test_obj}"
-
-    test_source_img_f = f"{test_obj_dir}/{str(test_source_pose_idx).zfill(z_len)}.npy"
-    test_source_image = np.load(test_source_img_f) / 255
-    test_source_pose = train_dataset.poses[test_obj_idx, test_source_pose_idx]
-    test_source_R = test_source_pose[:3, :3]
-
-    test_target_img_f = f"{test_obj_dir}/{str(test_target_pose_idx).zfill(z_len)}.npy"
-    test_target_image = np.load(test_target_img_f) / 255
-    test_target_pose = train_dataset.poses[test_obj_idx, test_target_pose_idx]
-    test_target_R = test_target_pose[:3, :3]
-
-    test_R = torch.Tensor(test_source_R.T @ test_target_R).to(device)
-
-    plt.imshow(test_source_image)
-    plt.show()
-    test_source_image = torch.Tensor(test_source_image)
-    test_source_image = (
-        test_source_image - train_dataset.channel_means
-    ) / train_dataset.channel_stds
-    test_source_image = test_source_image.to(device).unsqueeze(0).permute(0, 3, 1, 2)
-    plt.imshow(test_target_image)
-    plt.show()
-    test_target_image = torch.Tensor(test_target_image).to(device)
-
-    test_ds = torch.einsum("ij,hwj->hwi", test_R, init_ds)
-    test_os = (test_R @ init_o).expand(test_ds.shape)
-
-    t_n = float(1)
-    t_f = float(4)
+    t_n = 1.0
+    t_f = 4.0
+    img_size = train_dataset[0][2].shape[0]
     # See Section B.1 in the Supplementary Materials,
     # and: https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/conf/default.conf#L50,
     # and: https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/src/render/nerf.py#L150.
-    # I simply generate 32 fine samples as described in the NeRFpaper , i.e., I do not
-    # generate 16 "importance samples" and 16 "fine samples" as described in the
-    # pixelNeRF paper.
-    if use_fine:
-        N_c = 64
-        N_f = 32
-    else:
-        N_c = 128
-        N_f = None
+    # Note, I generate 32 coarse samples and 64 fine samples, similar to what was
+    # described in the NeRF paper, i.e., I do not generate 64 coarse samples, 16
+    # "importance samples" and 16 "fine samples" per importance sample as described in
+    # the pixelNeRF paper.
+    N_c = 32  # 64
+    N_f = 64  # 16 * 16
 
     t_i_c_gap = (t_f - t_n) / N_c
     t_i_c_bin_edges = (t_n + torch.arange(N_c) * t_i_c_gap).to(device)
 
+    init_o = train_dataset.init_o.to(device)
+    init_ds = train_dataset.init_ds.to(device)
+
+    (test_source_image, test_R, test_target_image) = load_test_data(
+        train_dataset, device
+    )
+    test_ds = torch.einsum("ij,hwj->hwi", test_R, init_ds)
+    test_os = (test_R @ init_o).expand(test_ds.shape)
+
     psnrs = []
     iternums = []
+    num_iters = train_dataset.N
+    use_bbox = True
+    num_bbox_iters = 300000
     display_every = 100
     F_c.train()
-    if use_fine:
-        F_f.train()
-
+    F_f.train()
     E.eval()
     for i in range(num_iters):
+        if i == num_bbox_iters:
+            use_bbox = False
+
         loss = 0
         for obj in range(n_objs):
             try:
@@ -313,8 +317,13 @@ def main():
             ds = torch.einsum("ij,hwj->hwi", R, init_ds)
             os = (R @ init_o).expand(ds.shape)
 
-            pix_rows = np.arange(bbox[0], bbox[2])
-            pix_cols = np.arange(bbox[1], bbox[3])
+            if use_bbox:
+                pix_rows = np.arange(bbox[0], bbox[2])
+                pix_cols = np.arange(bbox[1], bbox[3])
+            else:
+                pix_rows = np.arange(0, img_size)
+                pix_cols = np.arange(0, img_size)
+
             pix_row_cols = np.meshgrid(pix_rows, pix_cols, indexing="ij")
             pix_row_cols = np.stack(pix_row_cols).transpose(1, 2, 0).reshape(-1, 2)
             choices = np.arange(len(pix_row_cols))
@@ -348,7 +357,6 @@ def main():
                 W_i,
                 chunk_size,
                 F_c,
-                use_fine,
                 N_f,
                 t_f,
                 F_f,
@@ -358,22 +366,23 @@ def main():
                 C_rs_c.shape
             )
             loss += criterion(C_rs_c, target_img_batch)
-            if use_fine:
-                loss += criterion(C_rs_f, target_img_batch)
+            loss += criterion(C_rs_f, target_img_batch)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        try:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        except AttributeError:
+            continue
 
         if i % display_every == 0:
             F_c.eval()
-            if use_fine:
-                F_f.eval()
+            F_f.eval()
 
             with torch.no_grad():
                 test_W_i = E(test_source_image)
 
-                (C_rs_c, C_rs_f) = run_one_iter_of_pixelnerf(
+                (_, C_rs_f) = run_one_iter_of_pixelnerf(
                     test_ds,
                     N_c,
                     t_i_c_bin_edges,
@@ -384,14 +393,12 @@ def main():
                     test_W_i,
                     chunk_size,
                     F_c,
-                    use_fine,
                     N_f,
                     t_f,
                     F_f,
                 )
 
-            C_rs = C_rs_f if use_fine else C_rs_c
-            loss = criterion(C_rs, test_target_image)
+            loss = criterion(C_rs_f, test_target_image)
             print(f"Loss: {loss.item()}")
             psnr = -10.0 * torch.log10(loss)
 
@@ -400,7 +407,7 @@ def main():
 
             plt.figure(figsize=(10, 4))
             plt.subplot(121)
-            plt.imshow(C_rs.detach().cpu().numpy())
+            plt.imshow(C_rs_f.detach().cpu().numpy())
             plt.title(f"Iteration {i}")
             plt.subplot(122)
             plt.plot(iternums, psnrs)
@@ -408,8 +415,7 @@ def main():
             plt.show()
 
             F_c.train()
-            if use_fine:
-                F_f.train()
+            F_f.train()
 
     print("Done!")
 
