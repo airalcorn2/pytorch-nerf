@@ -42,9 +42,9 @@ and target view:
 
 ![](pixelnerf_tgt.png)
 
-[`run_pixelnerf.py`](run_pixelnerf.py) (which only uses 32 coarse samples and 64 fine samples instead of 64 coarse samples and 256 fine samples as in the pixelNeRF paper) generated the following after 50,400 iterations (approximately eight hours on a P100 GPU; the full pixelNeRF model was trained for 400,000 iterations, which took six days):
+[`run_pixelnerf.py`](run_pixelnerf.py) (which only uses 32 coarse samples and 64 fine samples instead of 64 coarse samples and 256 fine samples as in the pixelNeRF paper) generated the following after 113,700 iterations (~18 hours on a P100 GPU; the full pixelNeRF model was trained for 400,000 iterations, which took six days):
 
-**Loss**: 0.004834922030568123
+**Loss**: 0.004468636587262154
 
 ![](pixelnerf.png)
 
