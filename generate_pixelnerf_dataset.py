@@ -94,3 +94,7 @@ def main():
     )
     with open(f"{data_dir}/objs.txt", "w") as f:
         print("\n".join(used_objs), file=f)
+
+
+if __name__ == "__main__":
+    main()
