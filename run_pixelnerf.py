@@ -14,7 +14,7 @@ def get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os):
     return (r_ts_c, t_is_c)
 
 
-def get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds):
+def get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds, r_ts_c, N_d, d_std, t_n):
     w_is_c = w_is_c + 1e-5
     pdfs = w_is_c / torch.sum(w_is_c, dim=-1, keepdim=True)
     cdfs = torch.cumsum(pdfs, dim=-1)
@@ -33,8 +33,17 @@ def get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds):
     u_is_f = torch.rand_like(t_i_f_gaps).to(os)
     t_is_f = t_i_f_bottom_edges + u_is_f * t_i_f_gaps
 
-    (t_is_f, _) = torch.sort(torch.cat([t_is_c, t_is_f.detach()], dim=-1), dim=-1)
+    # See Section B.1 in the Supplementary Materials and:
+    # https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/src/render/nerf.py#L150.
+    t_is_d = (w_is_c * r_ts_c[..., 2]).sum(dim=-1)
+    t_is_d = t_is_d.unsqueeze(2).repeat((1, 1, N_d))
+    t_is_d = t_is_d + torch.normal(0, d_std, size=t_is_d.shape).to(t_is_d)
+    t_is_d = torch.clamp(t_is_d, t_n, t_f)
+
+    t_is_f = torch.cat([t_is_c, t_is_f.detach(), t_is_d], dim=-1)
+    (t_is_f, _) = torch.sort(t_is_f, dim=-1)
     r_ts_f = os[..., None, :] + t_is_f[..., :, None] * ds[..., None, :]
+
     return (r_ts_f, t_is_f)
 
 
@@ -112,6 +121,9 @@ def run_one_iter_of_pixelnerf(
     F_c,
     N_f,
     t_f,
+    N_d,
+    d_std,
+    t_n,
     F_f,
 ):
     (r_ts_c, t_is_c) = get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os)
@@ -120,7 +132,9 @@ def run_one_iter_of_pixelnerf(
         r_ts_c, ds, z_is_c, chunk_size, F_c, t_is_c
     )
 
-    (r_ts_f, t_is_f) = get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds)
+    (r_ts_f, t_is_f) = get_fine_query_points(
+        w_is_c, N_f, t_is_c, t_f, os, ds, r_ts_c, N_d, d_std, t_n
+    )
     z_is_f = get_image_features_for_query_points(r_ts_f, camera_distance, scale, W_i)
     (C_rs_f, _) = render_radiance_volume(r_ts_f, ds, z_is_f, chunk_size, F_f, t_is_f)
     return (C_rs_c, C_rs_f)
@@ -274,12 +288,10 @@ def main():
     # See Section B.1 in the Supplementary Materials,
     # and: https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/conf/default.conf#L50,
     # and: https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/src/render/nerf.py#L150.
-    # Note, I generate 32 coarse samples and 64 fine samples, similar to what was
-    # described in the NeRF paper, i.e., I do not generate 64 coarse samples, 16
-    # "importance samples" and 16 "fine samples" per importance sample as described in
-    # the pixelNeRF paper.
-    N_c = 32  # 64
-    N_f = 64  # 16 * 16
+    N_c = 64
+    N_f = 16
+    N_d = 16
+    d_std = 0.01
 
     t_i_c_gap = (t_f - t_n) / N_c
     t_i_c_bin_edges = (t_n + torch.arange(N_c) * t_i_c_gap).to(device)
@@ -359,6 +371,9 @@ def main():
                 F_c,
                 N_f,
                 t_f,
+                N_d,
+                d_std,
+                t_n,
                 F_f,
             )
             target_img = target_image.to(device)
@@ -395,6 +410,9 @@ def main():
                     F_c,
                     N_f,
                     t_f,
+                    N_d,
+                    d_std,
+                    t_n,
                     F_f,
                 )
 

@@ -1,5 +1,11 @@
 # PyTorch NeRF and pixelNeRF
 
+**NeRF**: [![Open NeRF in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1oRnnlF-2YqCDIzoc-uShQm8_yymLKiqr)
+
+**Tiny NeRF**: [![Open Tiny NeRF in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ntlbzQ121-E1BSa5EKvAyai6SMG4cylj)
+
+**pixelNeRF**: [![Open pixelNeRF in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1VEEy4VOVoQTQKo4oG3nWcfKAXjC_0fFt)
+
 This repository contains minimal PyTorch implementations of the NeRF model described in "[NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis](https://arxiv.org/abs/2003.08934)" and the pixelNeRF model described in ["pixelNeRF: Neural Radiance Fields from One or Few Images"](https://arxiv.org/abs/2012.02190).
 While there are other PyTorch implementations out there (e.g., [this one](https://github.com/krrish94/nerf-pytorch) and [this one](https://github.com/yenchenlin/nerf-pytorch) for NeRF, and [the authors' official implementation](https://github.com/sxyu/pixel-nerf) for pixelNeRF), I personally found them somewhat difficult to follow, so I decided to do a complete rewrite of NeRF myself.
 I tried to stay as close to the authors' text as possible, and I added comments in the code referring back to the relevant sections/equations in the paper.
@@ -42,7 +48,7 @@ and target view:
 
 ![](pixelnerf_tgt.png)
 
-[`run_pixelnerf.py`](run_pixelnerf.py) (which only uses 32 coarse samples and 64 fine samples instead of 64 coarse samples and 256 fine samples as in the pixelNeRF paper) generated the following after 113,700 iterations (~18 hours on a P100 GPU; the full pixelNeRF model was trained for 400,000 iterations, which took six days):
+[`run_pixelnerf.py`](run_pixelnerf.py) generated the following after 73,243 iterations (~12 hours on a P100 GPU; the full pixelNeRF model was trained for 400,000 iterations, which took six days):
 
 **Loss**: 0.004468636587262154
 

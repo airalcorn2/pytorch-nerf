@@ -82,12 +82,10 @@ class PixelNeRF:
         # See Section B.1 in the Supplementary Materials,
         # and: https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/conf/default.conf#L50,
         # and: https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/src/render/nerf.py#L150.
-        # Note, I generate 32 coarse samples and 64 fine samples, similar to what was
-        # described in the NeRF paper, i.e., I do not generate 64 coarse samples, 16
-        # "importance samples" and 16 "fine samples" per importance sample as described
-        # in the pixelNeRF paper.
-        self.N_c = N_c = 32  # 64
-        self.N_f = 64  # 16 * 16
+        self.N_c = N_c = 64
+        self.N_f = 16
+        self.N_d = 16
+        self.d_std = 0.01
 
         self.t_n = t_n = 1.0
         self.t_f = t_f = 4.0
@@ -109,7 +107,7 @@ class PixelNeRF:
         r_ts_c = os[..., None, :] + t_is_c[..., :, None] * ds[..., None, :]
         return (r_ts_c, t_is_c)
 
-    def get_fine_query_points(self, w_is_c, t_is_c, os, ds):
+    def get_fine_query_points(self, w_is_c, t_is_c, os, ds, r_ts_c):
         w_is_c = w_is_c + 1e-5
         pdfs = w_is_c / torch.sum(w_is_c, dim=-1, keepdim=True)
         cdfs = torch.cumsum(pdfs, dim=-1)
@@ -128,8 +126,17 @@ class PixelNeRF:
         u_is_f = torch.rand_like(t_i_f_gaps).to(os)
         t_is_f = t_i_f_bottom_edges + u_is_f * t_i_f_gaps
 
-        (t_is_f, _) = torch.sort(torch.cat([t_is_c, t_is_f.detach()], dim=-1), dim=-1)
+        # See Section B.1 in the Supplementary Materials and:
+        # https://github.com/sxyu/pixel-nerf/blob/a5a514224272a91e3ec590f215567032e1f1c260/src/render/nerf.py#L150.
+        t_is_d = (w_is_c * r_ts_c[..., 2]).sum(dim=-1)
+        t_is_d = t_is_d.unsqueeze(2).repeat((1, 1, self.N_d))
+        t_is_d = t_is_d + torch.normal(0, self.d_std, size=t_is_d.shape).to(t_is_d)
+        t_is_d = torch.clamp(t_is_d, self.t_n, self.t_f)
+
+        t_is_f = torch.cat([t_is_c, t_is_f.detach(), t_is_d], dim=-1)
+        (t_is_f, _) = torch.sort(t_is_f, dim=-1)
         r_ts_f = os[..., None, :] + t_is_f[..., :, None] * ds[..., None, :]
+
         return (r_ts_f, t_is_f)
 
     def get_image_features_for_query_points(self, r_ts, W_i):
