@@ -2,7 +2,7 @@ import numpy as np
 
 from renderer import Renderer
 from renderer_settings import *
-from rotation_utils import gen_rotation_matrix
+from rotation_utils import gen_rotation_matrix_from_azim_elev_in_plane
 
 
 def main():
@@ -31,25 +31,23 @@ def main():
     obj_mtl_path = f"{SHAPENET_DIR}/{cat}/{obj}/models/model_normalized"
     renderer.set_up_obj(f"{obj_mtl_path}.obj", f"{obj_mtl_path}.mtl")
 
-    # Generate car renders using random camera locations.
+    # Generate car renders using random object rotations.
     init_norm_dir = np.array([0, 0, 1])
     samps = 800
     imgs = []
     poses = []
     for idx in range(samps):
         angles = {
-            "yaw": np.random.uniform(-np.pi, np.pi),
-            "pitch": np.random.uniform(-np.pi, np.pi),
-            "roll": np.random.uniform(-np.pi, np.pi),
+            "azimuth": np.random.uniform(-np.pi, np.pi),
+            "elevation": np.random.uniform(-np.pi, np.pi),
         }
         renderer.set_params(angles)
-        R = gen_rotation_matrix(**angles)
+        R = gen_rotation_matrix_from_azim_elev_in_plane(**angles)
         image = renderer.render(0.5, 0.5, 0.5).resize((img_size, img_size))
         imgs.append(np.array(image))
 
-        pose = np.zeros((3, 4))
+        pose = np.zeros((3, 3))
         pose[:3, :3] = R.T
-        pose[:3, 3] = R @ init_norm_dir
         poses.append(pose)
 
     imgs = np.stack(imgs)

@@ -56,14 +56,15 @@ and target view:
 
 The "smearing" is an artifact caused by the bounding box sampling method.
 
-Similarly, [training an "object-centric NeRF"](run_tiny_obj_nerf.py) (i.e., where the *object* is rotated instead of the camera) only required making a few changes to [`run_tiny_nerf.py`](run_tiny_nerf.py) bringing it to 165 sloc (notebook [here](https://colab.research.google.com/drive/1fbn0DCVA1nMOcqEltTyjbBhSzsttaDqA?usp=sharing)).
+Similarly, [training an "object-centric NeRF"](run_tiny_obj_nerf.py) (i.e., where the *object* is rotated instead of the camera) is identical to [`run_tiny_nerf.py`](run_tiny_nerf.py) (notebook [here](https://colab.research.google.com/drive/1rVvbWQ9pnJxKRIY3roVRov3TISlgRU1W?usp=sharing)).
+Rotating an object is equivalent to holding the object stationary and rotating both the camera and the lighting in the opposite direction, which is how the object-centric dataset is generated in [`generate_obj_nerf_dataset.py`](generate_obj_nerf_dataset.py).
 
 For the following test view:
 
 ![](obj_test_view.png)
 
-[`run_tiny_obj_nerf.py`](run_tiny_obj_nerf.py) generated the following after 19,900 iterations (~35 minutes on a P100 GPU):
+[`run_tiny_obj_nerf.py`](run_tiny_obj_nerf.py) generated the following after 19,400 iterations (~35 minutes on a P100 GPU):
 
-**Loss**: 0.0009781129192560911
+**Loss**: 0.0005469498573802412
 
 ![](tiny_obj_nerf.png)
