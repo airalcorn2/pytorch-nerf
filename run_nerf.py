@@ -158,16 +158,16 @@ class NeRFMLP(nn.Module):
         # Encode the inputs. See Equation (4) in Section 5.1.
         xs_encoded = [xs]
         for l_pos in range(self.L_pos):
-            xs_encoded.append(torch.sin(2 ** l_pos * torch.pi * xs))
-            xs_encoded.append(torch.cos(2 ** l_pos * torch.pi * xs))
+            xs_encoded.append(torch.sin(2**l_pos * torch.pi * xs))
+            xs_encoded.append(torch.cos(2**l_pos * torch.pi * xs))
 
         xs_encoded = torch.cat(xs_encoded, dim=-1)
 
         ds = ds / ds.norm(p=2, dim=-1).unsqueeze(-1)
         ds_encoded = [ds]
         for l_dir in range(self.L_dir):
-            ds_encoded.append(torch.sin(2 ** l_dir * torch.pi * ds))
-            ds_encoded.append(torch.cos(2 ** l_dir * torch.pi * ds))
+            ds_encoded.append(torch.sin(2**l_dir * torch.pi * ds))
+            ds_encoded.append(torch.cos(2**l_dir * torch.pi * ds))
 
         ds_encoded = torch.cat(ds_encoded, dim=-1)
 
@@ -197,7 +197,7 @@ def main():
     chunk_size = 1024 * 32
     # Number of training rays per iteration. See Section 5.3.
     batch_img_size = 64
-    n_batch_pix = batch_img_size ** 2
+    n_batch_pix = batch_img_size**2
 
     # Initialize optimizer. See Section 5.3.
     lr = 5e-4
@@ -257,7 +257,7 @@ def main():
     train_idxs = np.arange(len(images)) != test_idx
     images = torch.Tensor(images[train_idxs])
     poses = torch.Tensor(poses[train_idxs])
-    n_pix = img_size ** 2
+    n_pix = img_size**2
     pixel_ps = torch.full((n_pix,), 1 / n_pix).to(device)
     psnrs = []
     iternums = []

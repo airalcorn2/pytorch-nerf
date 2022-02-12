@@ -102,7 +102,7 @@ def get_rotation_matrix_from_axis_angle(axis, angle):
     (ux, uy, uz) = (axis[0], axis[1], axis[2])
     x_col = np.array(
         [
-            [c + (ux ** 2) * (1 - c)],
+            [c + (ux**2) * (1 - c)],
             [uy * ux * (1 - c) + uz * s],
             [uz * ux * (1 - c) - uy * s],
         ]
@@ -110,7 +110,7 @@ def get_rotation_matrix_from_axis_angle(axis, angle):
     y_col = np.array(
         [
             [ux * uy * (1 - c) - uz * s],
-            [c + (uy ** 2) * (1 - c)],
+            [c + (uy**2) * (1 - c)],
             [uz * uy * (1 - c) + ux * s],
         ]
     )
@@ -118,7 +118,7 @@ def get_rotation_matrix_from_axis_angle(axis, angle):
         [
             [ux * uz * (1 - c) + uy * s],
             [uy * uz * (1 - c) - ux * s],
-            [c + (uz ** 2) * (1 - c)],
+            [c + (uz**2) * (1 - c)],
         ]
     )
     return np.hstack((x_col, y_col, z_col))

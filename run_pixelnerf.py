@@ -178,16 +178,16 @@ class PixelNeRFFCResNet(nn.Module):
     def forward(self, xs, ds, zs):
         xs_encoded = [xs]
         for l_pos in range(self.L_pos):
-            xs_encoded.append(torch.sin(2 ** l_pos * torch.pi * xs))
-            xs_encoded.append(torch.cos(2 ** l_pos * torch.pi * xs))
+            xs_encoded.append(torch.sin(2**l_pos * torch.pi * xs))
+            xs_encoded.append(torch.cos(2**l_pos * torch.pi * xs))
 
         xs_encoded = torch.cat(xs_encoded, dim=-1)
 
         ds = ds / ds.norm(p=2, dim=-1).unsqueeze(-1)
         ds_encoded = [ds]
         for l_dir in range(self.L_dir):
-            ds_encoded.append(torch.sin(2 ** l_dir * torch.pi * ds))
-            ds_encoded.append(torch.cos(2 ** l_dir * torch.pi * ds))
+            ds_encoded.append(torch.sin(2**l_dir * torch.pi * ds))
+            ds_encoded.append(torch.cos(2**l_dir * torch.pi * ds))
 
         ds_encoded = torch.cat(ds_encoded, dim=-1)
 
@@ -270,7 +270,7 @@ def main():
     chunk_size = 1024 * 32
     # See Section B.2 in the Supplementary Materials.
     batch_img_size = 12
-    n_batch_pix = batch_img_size ** 2
+    n_batch_pix = batch_img_size**2
     n_objs = 4
 
     # See Section B.2 in the Supplementary Materials.
