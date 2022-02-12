@@ -45,16 +45,16 @@ class PixelNeRFFCResNet(nn.Module):
     def forward(self, xs, ds, zs):
         xs_encoded = [xs]
         for l_pos in range(self.L_pos):
-            xs_encoded.append(torch.sin(2 ** l_pos * torch.pi * xs))
-            xs_encoded.append(torch.cos(2 ** l_pos * torch.pi * xs))
+            xs_encoded.append(torch.sin(2**l_pos * torch.pi * xs))
+            xs_encoded.append(torch.cos(2**l_pos * torch.pi * xs))
 
         xs_encoded = torch.cat(xs_encoded, dim=-1)
 
         ds = ds / ds.norm(p=2, dim=-1).unsqueeze(-1)
         ds_encoded = [ds]
         for l_dir in range(self.L_dir):
-            ds_encoded.append(torch.sin(2 ** l_dir * torch.pi * ds))
-            ds_encoded.append(torch.cos(2 ** l_dir * torch.pi * ds))
+            ds_encoded.append(torch.sin(2**l_dir * torch.pi * ds))
+            ds_encoded.append(torch.cos(2**l_dir * torch.pi * ds))
 
         ds_encoded = torch.cat(ds_encoded, dim=-1)
 
@@ -161,7 +161,7 @@ class PixelNeRF:
         z_is = z_is.permute(2, 3, 0, 1)
         return z_is
 
-    def render_radiance_volume(self, r_ts, ds, z_is, t_is):
+    def render_radiance_volume(self, r_ts, ds, z_is, F, t_is):
         r_ts_flat = r_ts.reshape((-1, 3))
         ds_rep = ds.unsqueeze(2).repeat(1, 1, r_ts.shape[-2], 1)
         ds_flat = ds_rep.reshape((-1, 3))
@@ -206,11 +206,13 @@ class PixelNeRF:
             W_i = self.E(source_image.unsqueeze(0).permute(0, 3, 1, 2).to(self.device))
 
         z_is_c = self.get_image_features_for_query_points(r_ts_c, W_i)
-        (C_rs_c, w_is_c) = self.render_radiance_volume(r_ts_c, ds, z_is_c, t_is_c)
+        (C_rs_c, w_is_c) = self.render_radiance_volume(
+            r_ts_c, ds, z_is_c, self.F_c, t_is_c
+        )
 
-        (r_ts_f, t_is_f) = self.get_fine_query_points(w_is_c, t_is_c, os, ds)
+        (r_ts_f, t_is_f) = self.get_fine_query_points(w_is_c, t_is_c, os, ds, r_ts_c)
         z_is_f = self.get_image_features_for_query_points(r_ts_f, W_i)
-        (C_rs_f, _) = self.render_radiance_volume(r_ts_f, ds, z_is_f, t_is_f)
+        (C_rs_f, _) = self.render_radiance_volume(r_ts_f, ds, z_is_f, self.F_f, t_is_f)
         return (C_rs_c, C_rs_f)
 
 
@@ -276,7 +278,7 @@ def main():
     pixelnerf = PixelNeRF(device, train_dataset.camera_distance, train_dataset.scale)
     # See Section B.2 in the Supplementary Materials.
     batch_img_size = 12
-    n_batch_pix = batch_img_size ** 2
+    n_batch_pix = batch_img_size**2
     n_objs = 4
 
     # See Section B.2 in the Supplementary Materials.
