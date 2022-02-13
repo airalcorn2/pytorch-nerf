@@ -98,7 +98,7 @@ class VeryTinyNeRFMLP(nn.Module):
         return {"c_is": c_is, "sigma_is": sigma_is}
 
 
-def main(data_f, test_idx):
+def main():
     seed = 9458
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -111,6 +111,7 @@ def main(data_f, test_idx):
     optimizer = optim.Adam(F_c.parameters(), lr=lr)
     criterion = nn.MSELoss()
 
+    data_f = "66bdbc812bd0a196e194052f3f12cb2e.npz"
     data = np.load(data_f)
 
     images = data["images"] / 255
@@ -124,6 +125,7 @@ def main(data_f, test_idx):
     init_ds = camera_coords.to(device)
     init_o = torch.Tensor(np.array([0, 0, float(data["camera_distance"])])).to(device)
 
+    test_idx = 150
     plt.imshow(images[test_idx])
     plt.show()
     test_img = torch.Tensor(images[test_idx]).to(device)
@@ -191,6 +193,4 @@ def main(data_f, test_idx):
 
 
 if __name__ == "__main__":
-    data_f = "66bdbc812bd0a196e194052f3f12cb2e.npz"
-    test_idx = 150
-    main(data_f, test_idx)
+    main()

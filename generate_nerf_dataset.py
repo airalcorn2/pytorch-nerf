@@ -8,11 +8,9 @@ from rotation_utils import gen_rotation_matrix_from_azim_elev_in_plane
 
 def main():
     # Set up the renderer.
-    camera_distance = 2.25
-    aov = 53.962828459664856
     renderer = Renderer(
-        camera_distance=camera_distance,
-        angle_of_view=aov,
+        camera_distance=CAMERA_DISTANCE,
+        angle_of_view=ANGLE_OF_VIEW,
         dir_light=DIR_LIGHT,
         dif_int=DIF_INT,
         amb_int=AMB_INT,
@@ -23,7 +21,7 @@ def main():
     img_size = 100
     # Calculate focal length in pixel units. This is just geometry. See:
     # https://en.wikipedia.org/wiki/Angle_of_view#Derivation_of_the_angle-of-view_formula.
-    focal = (img_size / 2) / np.tan(np.radians(aov) / 2)
+    focal = (img_size / 2) / np.tan(np.radians(ANGLE_OF_VIEW) / 2)
 
     # Load the ShapeNet car object.
     SHAPENET_DIR = "/run/media/airalcorn2/MiQ BIG/ShapeNetCore.v2"
@@ -33,7 +31,7 @@ def main():
     renderer.set_up_obj(f"{obj_mtl_path}.obj", f"{obj_mtl_path}.mtl")
 
     # Generate car renders using random camera locations.
-    init_cam_pos = np.array([0, 0, camera_distance])
+    init_cam_pos = np.array([0, 0, CAMERA_DISTANCE])
     target = np.zeros(3)
     up = np.array([0.0, 1.0, 0.0])
     samps = 800
@@ -67,7 +65,7 @@ def main():
         images=imgs,
         poses=poses,
         focal=focal,
-        camera_distance=camera_distance,
+        camera_distance=CAMERA_DISTANCE,
     )
 
 

@@ -308,7 +308,8 @@ class Renderer:
 
         # Lighting uniform variables.
         prog["R_light"].write(np.eye(3).astype("f4").tobytes())
-        prog["DirLight"].value = dir_light
+        dir_light = np.array(dir_light)
+        prog["DirLight"].value = tuple(dir_light / np.linalg.norm(dir_light))
         prog["dif_int"].value = dif_int
         prog["amb_int"].value = amb_int
         prog["amb_rgb"].value = (1.0, 1.0, 1.0)
