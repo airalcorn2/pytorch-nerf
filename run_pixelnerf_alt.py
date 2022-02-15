@@ -232,38 +232,38 @@ def load_data():
 
 
 def set_up_test_data(train_dataset, device):
-    test_obj_idx = train_dataset.test_obj_idx
-    test_source_pose_idx = train_dataset.test_source_pose_idx
-    test_target_pose_idx = train_dataset.test_target_pose_idx
-    test_obj = train_dataset.objs[test_obj_idx]
+    obj_idx = train_dataset.test_obj_idx
+    obj = train_dataset.objs[obj_idx]
     data_dir = train_dataset.data_dir
-    test_obj_dir = f"{data_dir}/{test_obj}"
+    obj_dir = f"{data_dir}/{obj}"
 
     z_len = train_dataset.z_len
-    test_source_img_f = f"{test_obj_dir}/{str(test_source_pose_idx).zfill(z_len)}.npy"
-    test_source_image = np.load(test_source_img_f) / 255
-    test_source_pose = train_dataset.poses[test_obj_idx, test_source_pose_idx]
-    test_source_R = test_source_pose[:3, :3]
+    source_pose_idx = train_dataset.test_source_pose_idx
+    source_img_f = f"{obj_dir}/{str(source_pose_idx).zfill(z_len)}.npy"
+    source_image = np.load(source_img_f) / 255
+    source_pose = train_dataset.poses[obj_idx, source_pose_idx]
+    source_R = source_pose[:3, :3]
 
-    test_target_img_f = f"{test_obj_dir}/{str(test_target_pose_idx).zfill(z_len)}.npy"
-    test_target_image = np.load(test_target_img_f) / 255
-    test_target_pose = train_dataset.poses[test_obj_idx, test_target_pose_idx]
-    test_target_R = test_target_pose[:3, :3]
+    target_pose_idx = train_dataset.test_target_pose_idx
+    target_img_f = f"{obj_dir}/{str(target_pose_idx).zfill(z_len)}.npy"
+    target_image = np.load(target_img_f) / 255
+    target_pose = train_dataset.poses[obj_idx, target_pose_idx]
+    target_R = target_pose[:3, :3]
 
-    test_R = torch.Tensor(test_source_R.T @ test_target_R).to(device)
+    R = torch.Tensor(source_R.T @ target_R).to(device)
 
-    plt.imshow(test_source_image)
+    plt.imshow(source_image)
     plt.show()
-    test_source_image = torch.Tensor(test_source_image)
-    test_source_image = (
-        test_source_image - train_dataset.channel_means
+    source_image = torch.Tensor(source_image)
+    source_image = (
+        source_image - train_dataset.channel_means
     ) / train_dataset.channel_stds
-    test_source_image = test_source_image.to(device).unsqueeze(0).permute(0, 3, 1, 2)
-    plt.imshow(test_target_image)
+    source_image = source_image
+    plt.imshow(target_image)
     plt.show()
-    test_target_image = torch.Tensor(test_target_image).to(device)
+    target_image = torch.Tensor(target_image).to(device)
 
-    return (test_source_image, test_R, test_target_image)
+    return (source_image, R, target_image)
 
 
 def main():
@@ -358,7 +358,8 @@ def main():
             pixelnerf.F_c.eval()
             pixelnerf.F_f.eval()
 
-            (_, C_rs_f) = pixelnerf(test_ds, test_os, test_source_image)
+            with torch.no_grad():
+                (_, C_rs_f) = pixelnerf(test_ds, test_os, test_source_image)
 
             loss = criterion(C_rs_f, test_target_image)
             print(f"Loss: {loss.item()}")

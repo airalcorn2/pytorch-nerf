@@ -222,7 +222,7 @@ def load_data():
     return train_dataset
 
 
-def load_test_data(train_dataset, device):
+def set_up_test_data(train_dataset, device):
     obj_idx = train_dataset.test_obj_idx
     obj = train_dataset.objs[obj_idx]
     data_dir = train_dataset.data_dir
@@ -299,7 +299,7 @@ def main():
     init_o = train_dataset.init_o.to(device)
     init_ds = train_dataset.init_ds.to(device)
 
-    (test_source_image, test_R, test_target_image) = load_test_data(
+    (test_source_image, test_R, test_target_image) = set_up_test_data(
         train_dataset, device
     )
     test_ds = torch.einsum("ij,hwj->hwi", test_R, init_ds)
