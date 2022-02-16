@@ -258,7 +258,6 @@ def set_up_test_data(train_dataset, device):
     source_image = (
         source_image - train_dataset.channel_means
     ) / train_dataset.channel_stds
-    source_image = source_image
     plt.imshow(target_image)
     plt.show()
     target_image = torch.Tensor(target_image).to(device)
