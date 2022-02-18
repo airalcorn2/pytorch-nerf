@@ -28,7 +28,7 @@ def get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds):
     # Get uniform samples (us).
     us = torch.rand(list(cdfs.shape[:-1]) + [N_f]).to(w_is_c)
 
-    # Use inverse inverse transform sampling to sample the depths (t_is_f).
+    # Use inverse transform sampling to sample the depths (t_is_f).
     idxs = torch.searchsorted(cdfs, us, right=True)
     t_i_f_bottom_edges = torch.gather(t_is_c, 2, idxs - 1)
     idxs_capped = idxs.clone()
