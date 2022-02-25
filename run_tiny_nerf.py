@@ -25,10 +25,8 @@ def render_radiance_volume(r_ts, ds, chunk_size, F, t_is):
         c_is.append(preds["c_is"])
         sigma_is.append(preds["sigma_is"])
 
-    c_is = torch.cat(c_is)
-    c_is = torch.reshape(c_is, r_ts.shape)
-    sigma_is = torch.cat(sigma_is)
-    sigma_is = torch.reshape(sigma_is, r_ts.shape[:-1])
+    c_is = torch.cat(c_is).reshape(r_ts.shape)
+    sigma_is = torch.cat(sigma_is).reshape(r_ts.shape[:-1])
 
     delta_is = t_is[..., 1:] - t_is[..., :-1]
     one_e_10 = torch.Tensor([1e10]).expand(delta_is[..., :1].shape)

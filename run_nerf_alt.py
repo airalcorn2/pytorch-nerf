@@ -152,10 +152,8 @@ class NeRF:
             c_is.append(preds["c_is"])
             sigma_is.append(preds["sigma_is"])
 
-        c_is = torch.cat(c_is)
-        c_is = torch.reshape(c_is, r_ts.shape)
-        sigma_is = torch.cat(sigma_is)
-        sigma_is = torch.reshape(sigma_is, r_ts.shape[:-1])
+        c_is = torch.cat(c_is).reshape(r_ts.shape)
+        sigma_is = torch.cat(sigma_is).reshape(r_ts.shape[:-1])
 
         # Calculate the distances (delta_is) between points along the rays. The
         # differences in depths are scaled by the norms of the ray directions to get the
