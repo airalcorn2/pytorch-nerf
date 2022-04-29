@@ -217,11 +217,11 @@ def main():
     # See Section 4.
     images = data["images"] / 255
     img_size = images.shape[1]
-    xs = torch.arange(img_size) - img_size / 2
-    ys = torch.arange(img_size) - img_size / 2
+    xs = torch.arange(img_size) - (img_size / 2 - 0.5)
+    ys = torch.arange(img_size) - (img_size / 2 - 0.5)
     (xs, ys) = torch.meshgrid(xs, -ys, indexing="xy")
     focal = float(data["focal"])
-    pixel_coords = torch.stack([xs, ys, -focal * torch.ones_like(xs)], dim=-1)
+    pixel_coords = torch.stack([xs, ys, torch.full_like(xs, -focal)], dim=-1)
     # We want the zs to be negative ones, so we divide everything by the focal length
     # (which is in pixel units).
     camera_coords = pixel_coords / focal

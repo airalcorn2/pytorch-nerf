@@ -33,11 +33,11 @@ class PixelNeRFDataset(Dataset):
         samp_img = np.load(f"{data_dir}/{self.objs[0]}/{str(0).zfill(self.z_len)}.npy")
         img_size = samp_img.shape[0]
         self.pix_idxs = np.arange(img_size ** 2)
-        xs = torch.arange(img_size) - img_size / 2
-        ys = torch.arange(img_size) - img_size / 2
+        xs = torch.arange(img_size) - (img_size / 2 - 0.5)
+        ys = torch.arange(img_size) - (img_size / 2 - 0.5)
         (xs, ys) = torch.meshgrid(xs, -ys, indexing="xy")
         focal = float(data["focal"])
-        pixel_coords = torch.stack([xs, ys, -focal * torch.ones_like(xs)], dim=-1)
+        pixel_coords = torch.stack([xs, ys, torch.full_like(xs, -focal)], dim=-1)
         camera_coords = pixel_coords / focal
         self.init_ds = camera_coords
         self.camera_distance = camera_distance = float(data["camera_distance"])
