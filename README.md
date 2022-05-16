@@ -17,7 +17,7 @@ At only 153 sloc, it might be a good place to start for people who are completel
 If you prefer your code more object-oriented, check out [`run_nerf_alt.py`](run_nerf_alt.py) and [`run_tiny_nerf_alt.py`](run_tiny_nerf_alt.py).
 
 A Colab notebook for the full model can be found [here](https://colab.research.google.com/drive/1oRnnlF-2YqCDIzoc-uShQm8_yymLKiqr?usp=sharing), while a notebook for the tiny model can be found [here](https://colab.research.google.com/drive/1ntlbzQ121-E1BSa5EKvAyai6SMG4cylj?usp=sharing).
-The [`generate_nerf_dataset.py`](generate_nerf_dataset.py) script was used to generate the training data of the ShapeNet car.
+The [`generate_nerf_dataset.py`](generate_nerf_dataset.py) script was used to generate the training data of the ShapeNet car (see "[Generating the ShapeNet datasets](#generating-the-shapenet-datasets)" for additional details).
 
 For the following test view:
 
@@ -38,7 +38,7 @@ while [`run_tiny_nerf.py`](run_tiny_nerf.py) generated the following after 19,60
 The advantages of streamlining NeRF's code become readily apparent when trying to extend NeRF.
 For example, [training a pixelNeRF model](run_pixelnerf.py) only required making a few changes to [`run_nerf.py`](run_nerf.py) bringing it to 368 sloc (notebook [here](https://colab.research.google.com/drive/1VEEy4VOVoQTQKo4oG3nWcfKAXjC_0fFt?usp=sharing)).
 For comparison, [the official pixelNeRF implementation](https://github.com/sxyu/pixel-nerf) has approximately 1,300 pixelNeRF-specific (i.e., not related to the image encoder or dataset) sloc spread across several files.
-The [`generate_pixelnerf_dataset.py`](generate_pixelnerf_dataset.py) script was used to generate the training data of ShapeNet cars.
+The [`generate_pixelnerf_dataset.py`](generate_pixelnerf_dataset.py) script was used to generate the training data of ShapeNet cars (see "[Generating the ShapeNet datasets](#generating-the-shapenet-datasets)" for additional details).
 
 For the following source object and view:
 
@@ -55,3 +55,27 @@ and target view:
 ![](pixelnerf.png)
 
 The "smearing" is an artifact caused by the bounding box sampling method.
+
+## Generating the ShapeNet datasets
+
+1) Download the data (the ShapeNet server is pretty slow, so this will take a while):
+
+```bash
+SHAPENET_BASE_DIR=<path/to/your/shapenet/root>
+nohup wget --quiet -P ${SHAPENET_BASE_DIR} http://shapenet.cs.stanford.edu/shapenet/obj-zip/ShapeNetCore.v2.zip > shapenet.log &
+```
+
+2) Unzip the data:
+
+```bash
+cd ${SHAPENET_BASE_DIR}
+nohup unzip -q ShapeNetCore.v2.zip > shapenet.log &
+```
+
+3) ***After*** the file is done unzipping, remove the ZIP:
+
+```bash
+rm ShapeNetCore.v2.zip
+```
+
+4) Change the `SHAPENET_DIR` variable in [`generate_nerf_dataset.py`](generate_nerf_dataset.py) and [`generate_pixelnerf_dataset.py`](generate_pixelnerf_dataset.py) to `<path/to/your/shapenet/root/ShapeNetCore.v2>`.

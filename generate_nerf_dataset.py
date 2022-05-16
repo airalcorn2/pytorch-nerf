@@ -5,6 +5,8 @@ from renderer import Renderer
 from renderer_settings import *
 from rotation_utils import gen_rotation_matrix_from_azim_elev_in_plane
 
+SHAPENET_DIR = "/run/media/airalcorn2/MiQ BIG/ShapeNetCore.v2"
+
 
 def main():
     # Set up the renderer.
@@ -24,7 +26,6 @@ def main():
     focal = (img_size / 2) / np.tan(np.radians(ANGLE_OF_VIEW) / 2)
 
     # Load the ShapeNet car object.
-    SHAPENET_DIR = "/run/media/airalcorn2/MiQ BIG/ShapeNetCore.v2"
     obj = "66bdbc812bd0a196e194052f3f12cb2e"
     cat = "02958343"
     obj_mtl_path = f"{SHAPENET_DIR}/{cat}/{obj}/models/model_normalized"
