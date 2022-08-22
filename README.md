@@ -78,4 +78,4 @@ nohup unzip -q ShapeNetCore.v2.zip > shapenet.log &
 rm ShapeNetCore.v2.zip
 ```
 
-4) Change the `SHAPENET_DIR` variable in [`generate_nerf_dataset.py`](generate_nerf_dataset.py) and [`generate_pixelnerf_dataset.py`](generate_pixelnerf_dataset.py) to `<path/to/your/shapenet/root/ShapeNetCore.v2>`.
+4) Change the `SHAPENET_DIR` variable in [`generate_nerf_dataset.py`](generate_nerf_dataset.py) and [`generate_pixelnerf_dataset.py`](generate_pixelnerf_dataset.py) to `<path/to/your/shapenet/root>/ShapeNetCore.v2`.

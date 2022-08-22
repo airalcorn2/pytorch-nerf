@@ -4,13 +4,34 @@ import numpy as np
 
 from PIL import Image, ImageOps
 from pyrr import Matrix44
-from rotation_utils import (
-    gen_rotation_matrix,
-    gen_rotation_matrix_from_azim_elev_in_plane,
-)
+from scipy.spatial.transform import Rotation
 
 YAW_PITCH_ROLL = {"yaw", "pitch", "roll"}
 AZIM_ELEV_IN_PLANE = {"azimuth", "elevation", "in_plane"}
+
+
+def gen_rotation_matrix_from_azim_elev_in_plane(
+    azimuth=0.0, elevation=0.0, in_plane=0.0
+):
+    # See: https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/lookat-function.
+    y = np.sin(elevation)
+    radius = np.cos(elevation)
+    x = radius * np.sin(azimuth)
+    z = radius * np.cos(azimuth)
+
+    cam_from = np.array([x, y, z])
+    cam_to = np.zeros(3)
+    tmp = np.array([0.0, 1.0, 0.0])
+
+    diff = cam_from - cam_to
+    forward = diff / np.linalg.norm(diff)
+    crossed = np.cross(tmp, forward)
+    right = crossed / np.linalg.norm(crossed)
+    up = np.cross(forward, right)
+
+    R = np.stack([right, up, forward])
+    R_in_plane = Rotation.from_euler("Z", in_plane).as_matrix()
+    return R_in_plane @ R
 
 
 def parse_obj_file(input_obj):
@@ -605,7 +626,10 @@ class Renderer:
                 ae_params[param] = value
 
         if len(ypr_params) > 0:
-            R_obj = gen_rotation_matrix(**ypr_params)
+            yaw = ypr_params.get("yaw", 0)
+            pitch = ypr_params.get("pitch", 0)
+            roll = ypr_params.get("roll", 0)
+            R_obj = Rotation.from_euler("YXZ", [yaw, pitch, roll]).as_matrix()
             self.prog["R_obj"].write(R_obj.T.astype("f4").tobytes())
         elif len(ae_params) > 0:
             R_obj = gen_rotation_matrix_from_azim_elev_in_plane(**ae_params)

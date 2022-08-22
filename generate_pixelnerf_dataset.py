@@ -3,9 +3,8 @@ import os
 import sys
 
 from pyrr import Matrix44
-from renderer import Renderer
+from renderer import gen_rotation_matrix_from_azim_elev_in_plane, Renderer
 from renderer_settings import *
-from rotation_utils import gen_rotation_matrix_from_azim_elev_in_plane
 
 SHAPENET_DIR = "/run/media/airalcorn2/MiQ BIG/ShapeNetCore.v2"
 
