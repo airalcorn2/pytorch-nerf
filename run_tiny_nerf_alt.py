@@ -72,8 +72,8 @@ class VeryTinyNeRF:
         c_is = []
         sigma_is = []
         for chunk_start in range(0, r_ts_flat.shape[0], self.chunk_size):
-            r_ts_batch = r_ts_flat[chunk_start : chunk_start + self.chunk_size]
-            ds_batch = ds_flat[chunk_start : chunk_start + self.chunk_size]
+            r_ts_batch = r_ts_flat[chunk_start: chunk_start + self.chunk_size]
+            ds_batch = ds_flat[chunk_start: chunk_start + self.chunk_size]
             preds = F(r_ts_batch, ds_batch)
             c_is.append(preds["c_is"])
             sigma_is.append(preds["sigma_is"])
@@ -117,15 +117,16 @@ def load_data(device):
     pixel_coords = torch.stack([xs, ys, torch.full_like(xs, -focal)], dim=-1)
     camera_coords = pixel_coords / focal
     init_ds = camera_coords.to(device)
-    init_o = torch.Tensor(np.array([0, 0, float(data["camera_distance"])])).to(device)
+    init_o = torch.Tensor(
+        np.array([0, 0, float(data["camera_distance"])])).to(device)
 
     return (images, data["poses"], init_ds, init_o, img_size)
 
 
 def set_up_test_data(images, device, poses, init_ds, init_o):
     test_idx = 150
-    plt.imshow(images[test_idx])
-    plt.show()
+    plt.imsave("results_alt/test_img.png", images[test_idx])
+    # plt.show()
     test_img = torch.Tensor(images[test_idx]).to(device)
     test_R = torch.Tensor(poses[test_idx, :3, :3]).to(device)
     test_ds = torch.einsum("ij,hwj->hwi", test_R, init_ds)
@@ -186,14 +187,14 @@ def main():
             psnrs.append(psnr.item())
             iternums.append(i)
 
-            plt.figure(figsize=(10, 4))
-            plt.subplot(121)
-            plt.imshow(C_rs_c.detach().cpu().numpy())
-            plt.title(f"Iteration {i}")
-            plt.subplot(122)
-            plt.plot(iternums, psnrs)
-            plt.title("PSNR")
-            plt.show()
+            # plt.figure(figsize=(10, 4))
+            # plt.subplot(121)
+            plt.imsave(f"results_alt/{i}.png", C_rs_c.detach().cpu().numpy())
+            # plt.title(f"Iteration {i}")
+            # plt.subplot(122)
+            # plt.plot(iternums, psnrs)
+            # plt.title("PSNR")
+            # plt.show()
 
             nerf.F_c.train()
 

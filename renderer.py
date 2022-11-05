@@ -79,9 +79,11 @@ def parse_obj_file(input_obj):
                 vt = int(vt) - 1 if vt else -1
 
                 if vt == -1:
-                    row = np.concatenate((data["v"][v], data["vn"][vn], empty_vt))
+                    row = np.concatenate(
+                        (data["v"][v], data["vn"][vn], empty_vt))
                 else:
-                    row = np.concatenate((data["v"][v], data["vn"][vn], data["vt"][vt]))
+                    row = np.concatenate(
+                        (data["v"][v], data["vn"][vn], data["vt"][vt]))
 
                 packed_arrays[current_mtl].append(row)
         elif elem_type == "usemtl":
@@ -152,7 +154,8 @@ def parse_mtl_file(input_mtl):
 
     sub_objs.sort()
     sub_objs.reverse()
-    non_trans = [sub_obj for sub_obj in sub_objs if mtl_infos[sub_obj]["d"] == 1.0]
+    non_trans = [
+        sub_obj for sub_obj in sub_objs if mtl_infos[sub_obj]["d"] == 1.0]
     trans = [
         (sub_obj, mtl_infos[sub_obj]["d"])
         for sub_obj in sub_objs
@@ -176,7 +179,7 @@ def get_texture_data(sub_objs, packed_arrays, mtl_infos, obj_f):
             img_str_idx = texture_f.find("images/")
             if img_str_idx != -1:
                 texture_path = "/".join(texture_path_list[:-2] + ["images"])
-                texture_f = texture_f[img_str_idx + img_str_len :]
+                texture_f = texture_f[img_str_idx + img_str_len:]
             else:
                 texture_path = "/".join(texture_path_list[:-1])
 
@@ -352,7 +355,8 @@ class Renderer:
 
         # Set up background.
         self.prog = prog
-        (self.default_width, self.default_height) = (default_width, default_height)
+        (self.default_width, self.default_height) = (
+            default_width, default_height)
         self.background = None
         (window_width, window_height) = self.set_up_background(background_f)
 
@@ -371,7 +375,8 @@ class Renderer:
         )
 
         # View-Projection uniform variable.
-        self.prog["VP"].write((self.look_at @ self.perspective).astype("f4").tobytes())
+        self.prog["VP"].write(
+            (self.look_at @ self.perspective).astype("f4").tobytes())
 
         # Set up object.
         self.mtl_infos = None
@@ -388,7 +393,8 @@ class Renderer:
         # Set up multisample anti-aliasing.
         self.ctx.multisample = True
         color_rbo = self.ctx.renderbuffer(size, samples=self.ctx.max_samples)
-        depth_rbo = self.ctx.depth_renderbuffer(size, samples=self.ctx.max_samples)
+        depth_rbo = self.ctx.depth_renderbuffer(
+            size, samples=self.ctx.max_samples)
         self.fbo = self.ctx.framebuffer(color_rbo, depth_rbo)
 
         color_rbo2 = self.ctx.renderbuffer(size)
@@ -404,11 +410,14 @@ class Renderer:
             for (sub_obj, packed_array) in packed_arrays.items()
         }
         (mtl_infos, sub_objs) = parse_mtl_file(mtl_f)
-        texture_data = get_texture_data(sub_objs, packed_arrays, mtl_infos, obj_f)
-        self.load_obj(packed_arrays, vertices, mtl_infos, sub_objs, texture_data)
+        texture_data = get_texture_data(
+            sub_objs, packed_arrays, mtl_infos, obj_f)
+        self.load_obj(packed_arrays, vertices,
+                      mtl_infos, sub_objs, texture_data)
 
     def load_obj(self, packed_arrays, vertices, mtl_infos, sub_objs, texture_data):
-        self.hom_vertices = np.hstack([vertices, np.ones(len(vertices))[:, None]])
+        self.hom_vertices = np.hstack(
+            [vertices, np.ones(len(vertices))[:, None]])
         render_objs = []
         vbos = {}
         vaos = {}
@@ -474,7 +483,8 @@ class Renderer:
             normals = np.repeat([[0.0, 0.0, 1.0]], len(vertices), axis=0)
             # The texture (UV) coordinates corresponding to the above triangle points.
             texture_coords = np.array(
-                [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]
+                [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [
+                    0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]
             )
 
             background_array = np.hstack((vertices, normals, texture_coords))
@@ -610,7 +620,8 @@ class Renderer:
         perspective = Matrix44.perspective_projection(
             self.angle_of_view, self.ratio, 0.1, 1000.0
         )
-        self.prog["VP"].write((perspective * self.look_at).astype("f4").tobytes())
+        self.prog["VP"].write(
+            (perspective * self.look_at).astype("f4").tobytes())
 
     def set_params(self, params):
         ypr_params = {}
@@ -659,7 +670,8 @@ class Renderer:
         (dx, dy) = (1 / depth.shape[1], 1 / depth.shape[0])
         dz_dx = (depth_pad[1:-1, 2:] - depth_pad[1:-1, :-2]) / (2 * dx)
         dz_dy = (depth_pad[2:, 1:-1] - depth_pad[:-2, 1:-1]) / (2 * dy)
-        norms = np.stack([-dz_dx.flatten(), -dz_dy.flatten(), np.ones(dz_dx.size)])
+        norms = np.stack(
+            [-dz_dx.flatten(), -dz_dy.flatten(), np.ones(dz_dx.size)])
         magnitudes = np.linalg.norm(norms, axis=0)
         norms /= magnitudes
         norms = norms.T

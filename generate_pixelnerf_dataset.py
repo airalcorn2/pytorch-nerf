@@ -6,7 +6,7 @@ from pyrr import Matrix44
 from renderer import gen_rotation_matrix_from_azim_elev_in_plane, Renderer
 from renderer_settings import *
 
-SHAPENET_DIR = "/run/media/airalcorn2/MiQ BIG/ShapeNetCore.v2"
+SHAPENET_DIR = "data/ShapeNetCore.v2"
 
 
 def main():
@@ -34,12 +34,12 @@ def main():
     # See Section 5.1.1.
     samps = 50
     z_len = len(str(samps - 1))
-    data_dir = "data"
+    data_dir = "rendered"
     poses = []
     os.mkdir(data_dir)
 
     # Car category.
-    cat = "02958343"
+    cat = "02773838"
     objs = os.listdir(f"{SHAPENET_DIR}/{cat}")
     used_objs = []
     for obj in objs:
@@ -72,7 +72,8 @@ def main():
             renderer.prog["cam_pos"].value = eye
 
             image = renderer.render(0.5, 0.5, 0.5).resize((img_size, img_size))
-            np.save(f"{obj_dir}/{str(samp_idx).zfill(z_len)}.npy", np.array(image))
+            np.save(f"{obj_dir}/{str(samp_idx).zfill(z_len)}.npy",
+                    np.array(image))
 
             pose = np.eye(4)
             pose[:3, :3] = np.array(look_at[:3, :3])

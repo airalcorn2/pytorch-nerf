@@ -19,8 +19,8 @@ def render_radiance_volume(r_ts, ds, chunk_size, F, t_is):
     c_is = []
     sigma_is = []
     for chunk_start in range(0, r_ts_flat.shape[0], chunk_size):
-        r_ts_batch = r_ts_flat[chunk_start : chunk_start + chunk_size]
-        ds_batch = ds_flat[chunk_start : chunk_start + chunk_size]
+        r_ts_batch = r_ts_flat[chunk_start: chunk_start + chunk_size]
+        ds_batch = ds_flat[chunk_start: chunk_start + chunk_size]
         preds = F(r_ts_batch, ds_batch)
         c_is.append(preds["c_is"])
         sigma_is.append(preds["sigma_is"])
@@ -47,7 +47,8 @@ def render_radiance_volume(r_ts, ds, chunk_size, F, t_is):
 
 
 def run_one_iter_of_tiny_nerf(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os, chunk_size, F_c):
-    (r_ts_c, t_is_c) = get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os)
+    (r_ts_c, t_is_c) = get_coarse_query_points(
+        ds, N_c, t_i_c_bin_edges, t_i_c_gap, os)
     C_rs_c = render_radiance_volume(r_ts_c, ds, chunk_size, F_c, t_is_c)
     return C_rs_c
 
@@ -121,11 +122,12 @@ def main():
     pixel_coords = torch.stack([xs, ys, torch.full_like(xs, -focal)], dim=-1)
     camera_coords = pixel_coords / focal
     init_ds = camera_coords.to(device)
-    init_o = torch.Tensor(np.array([0, 0, float(data["camera_distance"])])).to(device)
+    init_o = torch.Tensor(
+        np.array([0, 0, float(data["camera_distance"])])).to(device)
 
     test_idx = 150
-    plt.imshow(images[test_idx])
-    plt.show()
+    plt.imsave("results_tiny_nerf/target.png", images[test_idx])
+    # plt.show()
     test_img = torch.Tensor(images[test_idx]).to(device)
     poses = data["poses"]
     test_R = torch.Tensor(poses[test_idx, :3, :3]).to(device)
@@ -183,7 +185,7 @@ def main():
             plt.subplot(122)
             plt.plot(iternums, psnrs)
             plt.title("PSNR")
-            plt.show()
+            plt.savefig(f"results_tiny_nerf/{i}.png")
 
             F_c.train()
 

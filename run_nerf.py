@@ -194,7 +194,7 @@ def main():
     # Number of query points passed through the MLP at a time. See: https://github.com/bmild/nerf/blob/18b8aebda6700ed659cb27a0c348b737a5f6ab60/run_nerf.py#L488.
     chunk_size = 1024 * 32
     # Number of training rays per iteration. See Section 5.3.
-    batch_img_size = 64
+    batch_img_size = 16 # 64 (actual)
     n_batch_pix = batch_img_size**2
 
     # Initialize optimizer. See Section 5.3.
@@ -230,8 +230,8 @@ def main():
 
     # Set up test view.
     test_idx = 150
-    plt.imshow(images[test_idx])
-    plt.show()
+    plt.imsave("results_nerf/target.png",images[test_idx])
+    # plt.show()
     test_img = torch.Tensor(images[test_idx]).to(device)
     poses = data["poses"]
     test_R = torch.Tensor(poses[test_idx, :3, :3]).to(device)
@@ -343,7 +343,7 @@ def main():
             plt.subplot(122)
             plt.plot(iternums, psnrs)
             plt.title("PSNR")
-            plt.show()
+            plt.savefig(f"results_nerf/{i}.png")
 
             F_c.train()
             F_f.train()

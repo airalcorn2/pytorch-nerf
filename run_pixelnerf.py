@@ -22,7 +22,7 @@ def get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds, r_ts_c, N_d, d_std, 
 
     us = torch.rand(list(cdfs.shape[:-1]) + [N_f]).to(w_is_c)
 
-    idxs = torch.searchsorted(cdfs, us, right=True)
+    idxs = torch.searchsorted(cdfs.detach(), us.detach(), right=True)
     t_i_f_bottom_edges = torch.gather(t_is_c, 2, idxs - 1)
     idxs_capped = idxs.clone()
     max_ind = cdfs.shape[-1]
@@ -78,9 +78,9 @@ def render_radiance_volume(r_ts, ds, z_is, chunk_size, F, t_is):
     c_is = []
     sigma_is = []
     for chunk_start in range(0, r_ts_flat.shape[0], chunk_size):
-        r_ts_batch = r_ts_flat[chunk_start : chunk_start + chunk_size]
-        ds_batch = ds_flat[chunk_start : chunk_start + chunk_size]
-        w_is_batch = z_is_flat[chunk_start : chunk_start + chunk_size]
+        r_ts_batch = r_ts_flat[chunk_start: chunk_start + chunk_size]
+        ds_batch = ds_flat[chunk_start: chunk_start + chunk_size]
+        w_is_batch = z_is_flat[chunk_start: chunk_start + chunk_size]
         preds = F(r_ts_batch, ds_batch, w_is_batch)
         c_is.append(preds["c_is"])
         sigma_is.append(preds["sigma_is"])
@@ -124,8 +124,10 @@ def run_one_iter_of_pixelnerf(
     t_n,
     F_f,
 ):
-    (r_ts_c, t_is_c) = get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os)
-    z_is_c = get_image_features_for_query_points(r_ts_c, camera_distance, scale, W_i)
+    (r_ts_c, t_is_c) = get_coarse_query_points(
+        ds, N_c, t_i_c_bin_edges, t_i_c_gap, os)
+    z_is_c = get_image_features_for_query_points(
+        r_ts_c, camera_distance, scale, W_i)
     (C_rs_c, w_is_c) = render_radiance_volume(
         r_ts_c, ds, z_is_c, chunk_size, F_c, t_is_c
     )
@@ -133,8 +135,10 @@ def run_one_iter_of_pixelnerf(
     (r_ts_f, t_is_f) = get_fine_query_points(
         w_is_c, N_f, t_is_c, t_f, os, ds, r_ts_c, N_d, d_std, t_n
     )
-    z_is_f = get_image_features_for_query_points(r_ts_f, camera_distance, scale, W_i)
-    (C_rs_f, _) = render_radiance_volume(r_ts_f, ds, z_is_f, chunk_size, F_f, t_is_f)
+    z_is_f = get_image_features_for_query_points(
+        r_ts_f, camera_distance, scale, W_i)
+    (C_rs_f, _) = render_radiance_volume(
+        r_ts_f, ds, z_is_f, chunk_size, F_f, t_is_f)
     return (C_rs_c, C_rs_f)
 
 
@@ -176,16 +180,16 @@ class PixelNeRFFCResNet(nn.Module):
     def forward(self, xs, ds, zs):
         xs_encoded = [xs]
         for l_pos in range(self.L_pos):
-            xs_encoded.append(torch.sin(2**l_pos * torch.pi * xs))
-            xs_encoded.append(torch.cos(2**l_pos * torch.pi * xs))
+            xs_encoded.append(torch.sin(2**l_pos * np.pi * xs))
+            xs_encoded.append(torch.cos(2**l_pos * np.pi * xs))
 
         xs_encoded = torch.cat(xs_encoded, dim=-1)
 
         ds = ds / ds.norm(p=2, dim=-1).unsqueeze(-1)
         ds_encoded = [ds]
         for l_dir in range(self.L_dir):
-            ds_encoded.append(torch.sin(2**l_dir * torch.pi * ds))
-            ds_encoded.append(torch.cos(2**l_dir * torch.pi * ds))
+            ds_encoded.append(torch.sin(2**l_dir * np.pi * ds))
+            ds_encoded.append(torch.cos(2**l_dir * np.pi * ds))
 
         ds_encoded = torch.cat(ds_encoded, dim=-1)
 
@@ -241,15 +245,17 @@ def set_up_test_data(train_dataset, device):
 
     R = torch.Tensor(source_R.T @ target_R).to(device)
 
-    plt.imshow(source_image)
-    plt.show()
+    # plt.imshow(source_image)
+    plt.imsave("results/src.png", source_image)
+    # plt.show()
     source_image = torch.Tensor(source_image)
     source_image = (
         source_image - train_dataset.channel_means
     ) / train_dataset.channel_stds
     source_image = source_image.to(device).unsqueeze(0).permute(0, 3, 1, 2)
-    plt.imshow(target_image)
-    plt.show()
+    # plt.imshow(target_image)
+    plt.imsave("results/target.png", target_image)
+    # plt.show()
     target_image = torch.Tensor(target_image).to(device)
 
     return (source_image, R, target_image)
@@ -267,13 +273,14 @@ def main():
     E = ImageEncoder().to(device)
     chunk_size = 1024 * 32
     # See Section B.2 in the Supplementary Materials.
-    batch_img_size = 12
+    batch_img_size = 4
     n_batch_pix = batch_img_size**2
     n_objs = 4
 
     # See Section B.2 in the Supplementary Materials.
     lr = 1e-4
-    optimizer = optim.Adam(list(F_c.parameters()) + list(F_f.parameters()), lr=lr)
+    optimizer = optim.Adam(list(F_c.parameters()) +
+                           list(F_f.parameters()), lr=lr)
     criterion = nn.MSELoss()
 
     train_dataset = load_data()
@@ -335,7 +342,8 @@ def main():
                 pix_cols = np.arange(0, img_size)
 
             pix_row_cols = np.meshgrid(pix_rows, pix_cols, indexing="ij")
-            pix_row_cols = np.stack(pix_row_cols).transpose(1, 2, 0).reshape(-1, 2)
+            pix_row_cols = np.stack(pix_row_cols).transpose(
+                1, 2, 0).reshape(-1, 2)
             choices = np.arange(len(pix_row_cols))
             try:
                 selected_pix = np.random.choice(choices, n_batch_pix, False)
@@ -354,7 +362,8 @@ def main():
             # Extract feature pyramid from image. See Section 4.1, Section B.1 in the
             # Supplementary Materials, and: https://github.com/sxyu/pixel-nerf/blob/master/src/model/encoder.py.
             with torch.no_grad():
-                W_i = E(source_image.unsqueeze(0).permute(0, 3, 1, 2).to(device))
+                W_i = E(source_image.unsqueeze(
+                    0).permute(0, 3, 1, 2).to(device))
 
             (C_rs_c, C_rs_f) = run_one_iter_of_pixelnerf(
                 ds_batch,
@@ -421,14 +430,14 @@ def main():
             psnrs.append(psnr.item())
             iternums.append(i)
 
-            plt.figure(figsize=(10, 4))
-            plt.subplot(121)
-            plt.imshow(C_rs_f.detach().cpu().numpy())
+            # plt.figure(figsize=(10, 4))
+            # plt.subplot(121)
+            plt.imsave(f"results/{i}_img.png", C_rs_f.detach().cpu().numpy())
             plt.title(f"Iteration {i}")
             plt.subplot(122)
-            plt.plot(iternums, psnrs)
-            plt.title("PSNR")
-            plt.show()
+            # plt.plot(iternums, psnrs)
+            # plt.title("PSNR")
+            # plt.show()
 
             F_c.train()
             F_f.train()
