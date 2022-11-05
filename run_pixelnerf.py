@@ -8,6 +8,7 @@ from torch import nn, optim
 import sys
 import os
 
+
 def get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os):
     u_is_c = torch.rand(*list(ds.shape[:2]) + [N_c]).to(ds)
     t_is_c = t_i_c_bin_edges + u_is_c * t_i_c_gap
@@ -214,17 +215,18 @@ class PixelNeRFFCResNet(nn.Module):
 def load_data():
     # Initialize dataset and test object/poses.
     # data_dir = "data"
-    data_dir = sys.argv[1] # data path
+    data_dir = sys.argv[1]  # data path
     # See Section B.2.1 in the Supplementary Materials.
     num_iters = 400000
 
     # test_source_pose_idx = 11
-    test_source_pose_idx = sys.argv[2]
+    test_source_pose_idx = int(sys.argv[2])
     # test_target_pose_idx = 33
-    test_target_pose_idx = sys.argv[3]
+    test_target_pose_idx = int(sys.argv[3])
+    test_obj_idx = int(sys.argv[4])
 
     train_dataset = PixelNeRFDataset(
-        data_dir, num_iters, test_source_pose_idx, test_target_pose_idx
+        data_dir, num_iters, test_obj_idx, test_source_pose_idx, test_target_pose_idx
     )
     return train_dataset
 
@@ -251,7 +253,7 @@ def set_up_test_data(train_dataset, device):
     R = torch.Tensor(source_R.T @ target_R).to(device)
 
     # plt.imshow(source_image)
-    plt.imsave("results/src.png", source_image)
+    plt.imsave("results/pixelnerf/src.png", source_image)
     # plt.show()
     source_image = torch.Tensor(source_image)
     source_image = (
@@ -259,7 +261,7 @@ def set_up_test_data(train_dataset, device):
     ) / train_dataset.channel_stds
     source_image = source_image.to(device).unsqueeze(0).permute(0, 3, 1, 2)
     # plt.imshow(target_image)
-    plt.imsave("results/target.png", target_image)
+    plt.imsave("results/pixelnerf/target.png", target_image)
     # plt.show()
     target_image = torch.Tensor(target_image).to(device)
 
@@ -435,15 +437,13 @@ def main():
             psnrs.append(psnr.item())
             iternums.append(i)
 
-            # plt.figure(figsize=(10, 4))
-            # plt.subplot(121)
-            plt.imshow(f"results/{i}_img.png", C_rs_f.detach().cpu().numpy())
+            plt.figure(figsize=(10, 4))
+            plt.subplot(121)
+            plt.imshow(C_rs_f.detach().cpu().numpy())
             plt.title(f"Iteration {i}")
             plt.subplot(122)
             plt.plot(iternums, psnrs)
             plt.title("PSNR")
-            
-              
 
             plt.savefig(f"results/pixelnerf/{i}.png")
 
@@ -455,8 +455,13 @@ def main():
 
 if __name__ == "__main__":
     try:
-        os.mkdir("./results/pixelnerf")
+        os.mkdir("results")
     except Exception as e:
         print(e)
-                           
+
+    try:
+        os.mkdir("results/pixelnerf")
+    except Exception as e:
+        print(e)
+
     main()
