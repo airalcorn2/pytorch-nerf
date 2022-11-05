@@ -3,3 +3,5 @@ __pycache__
 data_shapenet
 results*
 # req.txt
+data/*
+

@@ -5,7 +5,8 @@ import torch
 from image_encoder import ImageEncoder
 from pixelnerf_dataset import PixelNeRFDataset
 from torch import nn, optim
-
+import sys
+import os
 
 def get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os):
     u_is_c = torch.rand(*list(ds.shape[:2]) + [N_c]).to(ds)
@@ -212,14 +213,18 @@ class PixelNeRFFCResNet(nn.Module):
 
 def load_data():
     # Initialize dataset and test object/poses.
-    data_dir = "data"
+    # data_dir = "data"
+    data_dir = sys.argv[1] # data path
     # See Section B.2.1 in the Supplementary Materials.
     num_iters = 400000
-    test_obj_idx = 5
-    test_source_pose_idx = 11
-    test_target_pose_idx = 33
+
+    # test_source_pose_idx = 11
+    test_source_pose_idx = sys.argv[2]
+    # test_target_pose_idx = 33
+    test_target_pose_idx = sys.argv[3]
+
     train_dataset = PixelNeRFDataset(
-        data_dir, num_iters, test_obj_idx, test_source_pose_idx, test_target_pose_idx
+        data_dir, num_iters, test_source_pose_idx, test_target_pose_idx
     )
     return train_dataset
 
@@ -432,12 +437,15 @@ def main():
 
             # plt.figure(figsize=(10, 4))
             # plt.subplot(121)
-            plt.imsave(f"results/{i}_img.png", C_rs_f.detach().cpu().numpy())
+            plt.imshow(f"results/{i}_img.png", C_rs_f.detach().cpu().numpy())
             plt.title(f"Iteration {i}")
             plt.subplot(122)
-            # plt.plot(iternums, psnrs)
-            # plt.title("PSNR")
-            # plt.show()
+            plt.plot(iternums, psnrs)
+            plt.title("PSNR")
+            
+              
+
+            plt.savefig(f"results/pixelnerf/{i}.png")
 
             F_c.train()
             F_f.train()
@@ -446,4 +454,9 @@ def main():
 
 
 if __name__ == "__main__":
+    try:
+        os.mkdir("./results/pixelnerf")
+    except Exception as e:
+        print(e)
+                           
     main()

@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+import sys
 from torch import nn, optim
-
+import os
 
 def get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os):
     # Sample depths (t_is_c). See Equation (2) in Section 4.
@@ -209,7 +209,7 @@ def main():
     decay_rate = 0.1
 
     # Load dataset.
-    data_f = "66bdbc812bd0a196e194052f3f12cb2e.npz"
+    data_f = sys.argv[1]
     data = np.load(data_f)
 
     # Set up initial ray origin (init_o) and ray directions (init_ds). These are the
@@ -343,7 +343,7 @@ def main():
             plt.subplot(122)
             plt.plot(iternums, psnrs)
             plt.title("PSNR")
-            plt.savefig(f"results_nerf/{i}.png")
+            plt.savefig(f"results/nerf/{i}.png")
 
             F_c.train()
             F_f.train()
@@ -352,4 +352,9 @@ def main():
 
 
 if __name__ == "__main__":
+    try:
+        os.mkdir("./results/nerf/")
+    except Exception as e:
+        print(e)
+                           
     main()
