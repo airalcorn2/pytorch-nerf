@@ -27,7 +27,7 @@ data_folder
 ### run pixelnerf
 
 ```
-python3 run_pixelnerf.py <data_folder_path> <source_image> <target_image>
+python3 run_pixelnerf.py <data_folder_path> <source_image> <target_image> <obj_id>
 ```
 
 
