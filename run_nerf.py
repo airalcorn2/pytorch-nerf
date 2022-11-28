@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import sys
+
 from torch import nn, optim
-import os
 
 
 def get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os):
@@ -42,8 +41,7 @@ def get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds):
     t_is_f = t_i_f_bottom_edges + u_is_f * t_i_f_gaps
 
     # Combine the coarse (t_is_c) and fine (t_is_f) depths and sort them.
-    (t_is_f, _) = torch.sort(
-        torch.cat([t_is_c, t_is_f.detach()], dim=-1), dim=-1)
+    (t_is_f, _) = torch.sort(torch.cat([t_is_c, t_is_f.detach()], dim=-1), dim=-1)
     # Calculate the points along the rays (r_ts_f) using the ray origins (os), depths
     # (t_is_f), and ray directions (ds). See Section 4: r(t) = o + t * d.
     r_ts_f = os[..., None, :] + t_is_f[..., :, None] * ds[..., None, :]
@@ -61,8 +59,8 @@ def render_radiance_volume(r_ts, ds, chunk_size, F, t_is):
     sigma_is = []
     # The network processes batches of inputs to avoid running out of memory.
     for chunk_start in range(0, r_ts_flat.shape[0], chunk_size):
-        r_ts_batch = r_ts_flat[chunk_start: chunk_start + chunk_size]
-        ds_batch = ds_flat[chunk_start: chunk_start + chunk_size]
+        r_ts_batch = r_ts_flat[chunk_start : chunk_start + chunk_size]
+        ds_batch = ds_flat[chunk_start : chunk_start + chunk_size]
         preds = F(r_ts_batch, ds_batch)
         c_is.append(preds["c_is"])
         sigma_is.append(preds["sigma_is"])
@@ -109,10 +107,8 @@ def render_radiance_volume(r_ts, ds, chunk_size, F, t_is):
 def run_one_iter_of_nerf(
     ds, N_c, t_i_c_bin_edges, t_i_c_gap, os, chunk_size, F_c, N_f, t_f, F_f
 ):
-    (r_ts_c, t_is_c) = get_coarse_query_points(
-        ds, N_c, t_i_c_bin_edges, t_i_c_gap, os)
-    (C_rs_c, w_is_c) = render_radiance_volume(
-        r_ts_c, ds, chunk_size, F_c, t_is_c)
+    (r_ts_c, t_is_c) = get_coarse_query_points(ds, N_c, t_i_c_bin_edges, t_i_c_gap, os)
+    (C_rs_c, w_is_c) = render_radiance_volume(r_ts_c, ds, chunk_size, F_c, t_is_c)
 
     (r_ts_f, t_is_f) = get_fine_query_points(w_is_c, N_f, t_is_c, t_f, os, ds)
     (C_rs_f, _) = render_radiance_volume(r_ts_f, ds, chunk_size, F_f, t_is_f)
@@ -154,8 +150,7 @@ class NeRFMLP(nn.Module):
         self.pre_final_layer = nn.Sequential(
             nn.Linear(dir_enc_feats + net_width, net_width // 2), nn.ReLU()
         )
-        self.final_layer = nn.Sequential(
-            nn.Linear(net_width // 2, 3), nn.Sigmoid())
+        self.final_layer = nn.Sequential(nn.Linear(net_width // 2, 3), nn.Sigmoid())
 
     def forward(self, xs, ds):
         # Encode the inputs. See Equation (4) in Section 5.1.
@@ -181,8 +176,7 @@ class NeRFMLP(nn.Module):
         outputs = self.late_mlp(torch.cat([xs_encoded, outputs], dim=-1))
         outputs = self.sigma_layer(outputs)
         sigma_is = torch.relu(outputs[:, 0])
-        outputs = self.pre_final_layer(
-            torch.cat([ds_encoded, outputs[:, 1:]], dim=-1))
+        outputs = self.pre_final_layer(torch.cat([ds_encoded, outputs[:, 1:]], dim=-1))
         c_is = self.final_layer(outputs)
         return {"c_is": c_is, "sigma_is": sigma_is}
 
@@ -200,13 +194,12 @@ def main():
     # Number of query points passed through the MLP at a time. See: https://github.com/bmild/nerf/blob/18b8aebda6700ed659cb27a0c348b737a5f6ab60/run_nerf.py#L488.
     chunk_size = 1024 * 32
     # Number of training rays per iteration. See Section 5.3.
-    batch_img_size = 16  # 64 (actual)
+    batch_img_size = 16 # 64 (actual)
     n_batch_pix = batch_img_size**2
 
     # Initialize optimizer. See Section 5.3.
     lr = 5e-4
-    optimizer = optim.Adam(list(F_c.parameters()) +
-                           list(F_f.parameters()), lr=lr)
+    optimizer = optim.Adam(list(F_c.parameters()) + list(F_f.parameters()), lr=lr)
     criterion = nn.MSELoss()
     # The learning rate decays exponentially. See Section 5.3
     # See: https://github.com/bmild/nerf/blob/18b8aebda6700ed659cb27a0c348b737a5f6ab60/run_nerf.py#L486.
@@ -216,7 +209,7 @@ def main():
     decay_rate = 0.1
 
     # Load dataset.
-    data_f = sys.argv[1]
+    data_f = "66bdbc812bd0a196e194052f3f12cb2e.npz"
     data = np.load(data_f)
 
     # Set up initial ray origin (init_o) and ray directions (init_ds). These are the
@@ -228,19 +221,16 @@ def main():
     ys = torch.arange(img_size) - (img_size / 2 - 0.5)
     (xs, ys) = torch.meshgrid(xs, -ys, indexing="xy")
     focal = float(data["focal"])
-    # focal = float(138)
     pixel_coords = torch.stack([xs, ys, torch.full_like(xs, -focal)], dim=-1)
     # We want the zs to be negative ones, so we divide everything by the focal length
     # (which is in pixel units).
     camera_coords = pixel_coords / focal
     init_ds = camera_coords.to(device)
-    init_o = torch.Tensor(
-        np.array([0, 0, float(data["camera_distance"])])).to(device)
-    # np.array([0, 0, float(2)])).to(device)
+    init_o = torch.Tensor(np.array([0, 0, float(data["camera_distance"])])).to(device)
 
     # Set up test view.
-    test_idx = 96
-    plt.imsave("results/nerf/target.png", images[test_idx])
+    test_idx = 150
+    plt.imsave("results_nerf/target.png",images[test_idx])
     # plt.show()
     test_img = torch.Tensor(images[test_idx]).to(device)
     poses = data["poses"]
@@ -270,7 +260,7 @@ def main():
     psnrs = []
     iternums = []
     # See Section 5.3.
-    num_iters = 6000
+    num_iters = 300000
     display_every = 100
     F_c.train()
     F_f.train()
@@ -309,12 +299,10 @@ def main():
             F_f,
         )
         target_img = images[target_img_idx].to(device)
-        target_img_batch = target_img[pix_idx_rows,
-                                      pix_idx_cols].reshape(C_rs_f.shape)
+        target_img_batch = target_img[pix_idx_rows, pix_idx_cols].reshape(C_rs_f.shape)
         # Calculate the mean squared error for both the coarse and fine MLP models and
         # update the weights. See Equation (6) in Section 5.3.
-        loss = criterion(C_rs_c, target_img_batch) + \
-            criterion(C_rs_f, target_img_batch)
+        loss = criterion(C_rs_c, target_img_batch) + criterion(C_rs_f, target_img_batch)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -355,7 +343,7 @@ def main():
             plt.subplot(122)
             plt.plot(iternums, psnrs)
             plt.title("PSNR")
-            plt.savefig(f"results/nerf/{i}.png")
+            plt.savefig(f"results_nerf/{i}.png")
 
             F_c.train()
             F_f.train()
@@ -364,13 +352,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        os.mkdir("results")
-    except Exception as e:
-        print(e)
-    try:
-        os.mkdir("results/nerf")
-    except Exception as e:
-        print(e)
-
     main()

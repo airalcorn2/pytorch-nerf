@@ -30,8 +30,7 @@ class PixelNeRFDataset(Dataset):
         self.channel_means = torch.Tensor([0.485, 0.456, 0.406])
         self.channel_stds = torch.Tensor([0.229, 0.224, 0.225])
 
-        samp_img = np.load(
-            f"{data_dir}/{self.objs[0]}/{str(0).zfill(self.z_len)}.npy")
+        samp_img = np.load(f"{data_dir}/{self.objs[0]}/{str(0).zfill(self.z_len)}.npy")
         img_size = samp_img.shape[0]
         self.pix_idxs = np.arange(img_size ** 2)
         xs = torch.arange(img_size) - (img_size / 2 - 0.5)

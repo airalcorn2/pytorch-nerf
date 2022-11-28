@@ -1,10 +1,4 @@
 .idea
 __pycache__
-data_shapenet
+data
 results*
-run_tiny_nerf*
-run_nerf_alt.py
-run_pixelnerf_alt.py
-# req.txt
-data/*
-
