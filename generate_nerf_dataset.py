@@ -1,7 +1,7 @@
 import numpy as np
 
 from pyrr import Matrix44
-from renderer import gen_rotation_matrix_from_azim_elev_in_plane, Renderer
+from renderer import gen_rotation_matrix_from_cam_pos, Renderer
 from renderer_settings import *
 
 SHAPENET_DIR = "/run/media/airalcorn2/MiQ BIG/ShapeNetCore.v2"
@@ -38,11 +38,10 @@ def main():
     imgs = []
     poses = []
     for idx in range(samps):
-        angles = {
-            "azimuth": np.random.uniform(-np.pi, np.pi),
-            "elevation": np.random.uniform(-np.pi, np.pi),
-        }
-        R = gen_rotation_matrix_from_azim_elev_in_plane(**angles)
+        # See: https://stats.stackexchange.com/a/7984/81836.
+        xyz = np.random.normal(size=3)
+        xyz /= np.linalg.norm(xyz)
+        R = gen_rotation_matrix_from_cam_pos(xyz)
         eye = tuple((R @ init_cam_pos).flatten())
         look_at = Matrix44.look_at(eye, target, up)
         renderer.prog["VP"].write(

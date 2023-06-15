@@ -8,6 +8,26 @@ from scipy.spatial.transform import Rotation
 
 YAW_PITCH_ROLL = {"yaw", "pitch", "roll"}
 AZIM_ELEV_IN_PLANE = {"azimuth", "elevation", "in_plane"}
+TOL = 1e-6
+
+
+def gen_rotation_matrix_from_cam_pos(xyz, in_plane=0.0):
+    assert 1 - np.linalg.norm(xyz) < TOL
+
+    cam_from = xyz
+    cam_to = np.zeros(3)
+    tmp = np.array([0.0, 1.0, 0.0])
+
+    diff = cam_from - cam_to
+    forward = diff / np.linalg.norm(diff)
+    crossed = np.cross(tmp, forward)
+    right = crossed / np.linalg.norm(crossed)
+    up = np.cross(forward, right)
+
+    R = np.stack([right, up, forward])
+    R_in_plane = Rotation.from_euler("Z", in_plane).as_matrix()
+    return R_in_plane @ R
+
 
 
 def gen_rotation_matrix_from_azim_elev_in_plane(
@@ -57,7 +77,7 @@ def parse_obj_file(input_obj):
         parts = line.split()
         elem_type = parts[0]
         if elem_type in data:
-            vals = np.array(parts[1:4], dtype=np.float)
+            vals = np.array(parts[1:4], dtype=np.float32)
             if elem_type == "v":
                 min_vec = np.minimum(min_vec, vals)
                 max_vec = np.maximum(max_vec, vals)
@@ -65,7 +85,7 @@ def parse_obj_file(input_obj):
                 vals /= np.linalg.norm(vals)
             elif elem_type == "vt":
                 if len(vals) < 3:
-                    vals = np.array(list(vals) + [0.0], dtype=np.float)
+                    vals = np.array(list(vals) + [0.0], dtype=np.float32)
 
             data[elem_type].append(vals)
         elif elem_type == "f":
@@ -137,7 +157,7 @@ def parse_mtl_file(input_mtl):
         parts = line.split()
         elem_type = parts[0]
         if elem_type in vector_elems:
-            vals = np.array(parts[1:4], dtype=np.float)
+            vals = np.array(parts[1:4], dtype=np.float32)
             mtl_infos[current_mtl][elem_type] = tuple(vals)
         elif elem_type in float_elems:
             mtl_infos[current_mtl][elem_type] = float(parts[1])
